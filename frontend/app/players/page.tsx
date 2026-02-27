@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { playersAPI, tournamentsAPI, seasonsAPI, competitionsAPI } from '@/lib/api';
+import { playersAPI } from '@/lib/api';
 import PlayerStats from '@/components/PlayerStats';
 import PlayerStatsFilters, { FilterOptions } from '@/components/PlayerStatsFilters';
 
@@ -14,39 +14,40 @@ interface Player {
 
 export default function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
-  const [jerseyUrl, setJerseyUrl] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterOptions>({ type: 'all' });
 
   useEffect(() => {
-    fetchPlayersAndJersey();
+    fetchPlayers();
   }, []);
 
-  const fetchPlayersAndJersey = async () => {
+  const fetchPlayers = async () => {
     try {
       setLoading(true);
-
-      // Get active tournament (Liga Nuñez)
-      const tournamentsRes = await tournamentsAPI.getActive();
-      const activeTeam = tournamentsRes.data;
-      
-      if (activeTeam?.id) {
-        // Get active season for this tournament
-        const seasonRes = await seasonsAPI.getActive(activeTeam.id);
-        
-        if (seasonRes.data?.id) {
-          // Get active competition for this season
-          const competitionsRes = await competitionsAPI.getActive(seasonRes.data.id);
-          if (competitionsRes.data?.jerseyUrl) {
-            setJerseyUrl(competitionsRes.data.jerseyUrl);
-          }
-        }
-      }
-
-      // Get players
       const response = await playersAPI.getAll();
       const playersData = response.data;
+
+      // Enrich players with stats
+      const enrichedPlayers = await Promise.all(
+        playersData.map(async (player: any) => {
+          const stats = player.matchPlayers || [];
+          return {
+            ...player,
+            stats,
+          };
+        })
+      );
+
+      setPlayers(enrichedPlayers);
+      setError(null);
+    } catch (err) {
+      setError('Error al cargar los jugadores');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
       // Enrich players with stats
       const enrichedPlayers = await Promise.all(
@@ -170,7 +171,6 @@ export default function PlayersPage() {
                   goals={stats.goals}
                   rating={stats.rating}
                   matches={stats.matches}
-                  jerseyUrl={jerseyUrl}
                 />
               );
             })}

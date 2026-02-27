@@ -55,7 +55,7 @@ router.get('/:seasonId/active', async (req, res) => {
 // POST create competition
 router.post('/', async (req, res) => {
   try {
-    const { seasonId, name, jerseyUrl } = req.body;
+    const { seasonId, name } = req.body;
 
     if (!seasonId || !name) {
       return res.status(400).json({ error: 'seasonId and name are required' });
@@ -65,7 +65,6 @@ router.post('/', async (req, res) => {
       data: {
         seasonId,
         name,
-        jerseyUrl: jerseyUrl || null,
         isActive: true,
       },
       include: {
@@ -201,63 +200,6 @@ router.delete('/:id/final-table-photo', async (req, res) => {
       return res.status(404).json({ error: 'Competition not found' });
     }
     res.status(500).json({ error: 'Failed to delete competition photo' });
-  }
-});
-
-// PUT update jersey URL
-router.put('/:id/jersey', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { jerseyUrl } = req.body;
-
-    if (!jerseyUrl) {
-      return res.status(400).json({ error: 'jerseyUrl is required' });
-    }
-
-    const competition = await prisma.competition.update({
-      where: { id },
-      data: {
-        jerseyUrl,
-      },
-      include: {
-        season: true,
-        matches: true,
-      },
-    });
-
-    res.json(competition);
-  } catch (error: any) {
-    console.error('Error updating competition jersey:', error);
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Competition not found' });
-    }
-    res.status(500).json({ error: 'Failed to update competition jersey' });
-  }
-});
-
-// DELETE jersey URL
-router.delete('/:id/jersey', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const competition = await prisma.competition.update({
-      where: { id },
-      data: {
-        jerseyUrl: null,
-      },
-      include: {
-        season: true,
-        matches: true,
-      },
-    });
-
-    res.json(competition);
-  } catch (error: any) {
-    console.error('Error deleting competition jersey:', error);
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Competition not found' });
-    }
-    res.status(500).json({ error: 'Failed to delete competition jersey' });
   }
 });
 

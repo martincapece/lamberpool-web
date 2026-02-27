@@ -52,12 +52,11 @@ async function main() {
   // Create competition for this season
   const competition = await prisma.competition.upsert({
     where: { seasonId_name: { seasonId: season.id, name: 'Fase Regular' } },
-    update: { isActive: true, jerseyUrl: '/jerseys/2025-apertura.png' },
+    update: { isActive: true },
     create: {
       name: 'Fase Regular',
       seasonId: season.id,
       isActive: true,
-      jerseyUrl: '/jerseys/2025-apertura.png',
     },
   });
   console.log('✓ Competition created: Fase Regular');
@@ -70,6 +69,7 @@ async function main() {
       division: '1ra División',
       tournament: 'Liga Castrol',
       title: 'Subcampeonato',
+      jerseyUrl: '/jerseys/2024-clausura.png',
       order: 1,
     },
     {
@@ -78,6 +78,8 @@ async function main() {
       division: '5ta División',
       tournament: 'Liga Nuñez',
       title: 'Subcampeonato',
+      jerseyUrl: '/jerseys/2025-apertura.png',
+      altJerseyUrl: '/jerseys/2024-clausura.png',
       order: 2,
     },
     {
@@ -86,6 +88,8 @@ async function main() {
       division: '4ta División',
       tournament: 'Liga Nuñez',
       title: 'Campeonato',
+      jerseyUrl: '/jerseys/2025-clausura.png',
+      altJerseyUrl: '/jerseys/2025-apertura.png',
       order: 3,
     },
     {
@@ -94,6 +98,8 @@ async function main() {
       division: '3ra División',
       tournament: 'Liga Nuñez',
       title: 'Próximo',
+      jerseyUrl: '/jerseys/2026-apertura.png',
+      altJerseyUrl: '/jerseys/2025-clausura.png',
       order: 4,
     },
     {
@@ -102,6 +108,8 @@ async function main() {
       division: 'Copa Sudamericana',
       tournament: 'Internacional',
       title: 'Próximo',
+      jerseyUrl: '/jerseys/2026-apertura.png',
+      altJerseyUrl: '/jerseys/2025-clausura.png',
       order: 5,
     },
   ];
@@ -112,6 +120,8 @@ async function main() {
       update: {
         tournament: champ.tournament,
         title: champ.title,
+        jerseyUrl: champ.jerseyUrl,
+        altJerseyUrl: champ.altJerseyUrl || null,
         order: champ.order,
       },
       create: champ,

@@ -23,30 +23,15 @@ export default function ChampionshipTimeline() {
 
   // Función para generar el nombre de archivo de arquero
   const getGoalkeeperJerseyUrl = (year: number, season: string): string | null => {
-    // Para 2026, tiene camisetas titular y suplente (basadas en altJerseyUrl)
-    if (year === 2026) {
-      // Siendo determinado por el parámetro de layout especial en el render
-      return null; // Se maneja diferente en el layout
+    if (year === 2024 && season.toLowerCase().includes('clausura')) {
+      return '/jerseys/2024-clausura-arq.png';
     }
-
-    // Para 2025: apertura o clausura
-    if (year === 2025) {
-      if (season.toLowerCase().includes('apertura')) {
-        return '/jerseys/2025-apertura-arq.png';
-      }
-      if (season.toLowerCase().includes('clausura')) {
-        return '/jerseys/2025-clausura-arq.png';
-      }
+    if (year === 2025 && season.toLowerCase().includes('apertura')) {
+      return '/jerseys/2025-apertura-arq.png';
     }
-
-    // Para 2024, solo tiene clausura
-    if (year === 2024) {
-      if (season.toLowerCase().includes('clausura')) {
-        return '/jerseys/2024-clausura-arq.png';
-      }
+    if (year === 2025 && season.toLowerCase().includes('clausura')) {
+      return '/jerseys/2025-clausura-arq.png';
     }
-
-    // Para años anteriores, retorna null
     return null;
   };
 
@@ -159,65 +144,85 @@ export default function ChampionshipTimeline() {
                   {/* Camisetas */}
                   {(championship.jerseyUrl || championship.altJerseyUrl) && (
                     <div className="mt-2 md:mt-4">
-                      {/* Layout para 2026: 1 columna mobile, 2 columnas desktop */}
+                      {/* Layout para 2026: 2x2 grid */}
                       {championship.year === 2026 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-                          {/* Columna 1: Titular + Arquero Titular */}
-                          {championship.jerseyUrl && (
-                            <div className="space-y-2 md:space-y-3">
-                              <div className="text-center">
-                                <img
-                                  src={championship.jerseyUrl}
-                                  alt="Camiseta titular"
-                                  className="h-20 sm:h-24 md:h-32 lg:h-48 mx-auto object-contain mb-1 md:mb-2"
-                                />
-                                <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Jugador Titular</p>
-                              </div>
-                              <div className="text-center">
-                                <img
-                                  src="/jerseys/2025-apertura-arq.png"
-                                  alt="Camiseta arquero titular"
-                                  className="h-20 sm:h-24 md:h-32 lg:h-48 mx-auto object-contain mb-1 md:mb-2"
-                                />
-                                <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Arquero Titular</p>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Columna 2: Suplente + Arquero Suplente */}
-                          {championship.altJerseyUrl && (
-                            <div className="space-y-2 md:space-y-3">
-                              <div className="text-center">
-                                <img
-                                  src={championship.altJerseyUrl}
-                                  alt="Camiseta suplente"
-                                  className="h-20 sm:h-24 md:h-32 lg:h-48 mx-auto object-contain mb-1 md:mb-2"
-                                />
-                                <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Jugador Suplente</p>
-                              </div>
-                              <div className="text-center">
-                                <img
-                                  src="/jerseys/2025-clausura-arq.png"
-                                  alt="Camiseta arquero suplente"
-                                  className="h-20 sm:h-24 md:h-32 lg:h-48 mx-auto object-contain mb-1 md:mb-2"
-                                />
-                                <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Arquero Suplente</p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        /* Layout anterior para otros años: adaptativo para mobile */
-                        <div className={`grid gap-2 md:gap-3 ${
-                          championship.jerseyUrl && championship.altJerseyUrl && getGoalkeeperJerseyUrl(championship.year, championship.season)
-                            ? 'grid-cols-3 lg:grid-cols-3'
-                            : 'grid-cols-2 lg:grid-cols-2'
-                        }`}>
+                        <div className="grid grid-cols-2 gap-2 md:gap-3">
+                          {/* Columna izquierda arriba: Titular jugador */}
                           {championship.jerseyUrl && (
                             <div className="text-center">
                               <img
                                 src={championship.jerseyUrl}
-                                alt="Camiseta titular"
+                                alt="Titular"
+                                className="h-20 sm:h-24 md:h-32 lg:h-40 mx-auto object-contain mb-1 md:mb-2"
+                              />
+                              <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Titular</p>
+                            </div>
+                          )}
+
+                          {/* Columna derecha arriba: Suplente jugador */}
+                          {championship.altJerseyUrl && (
+                            <div className="text-center">
+                              <img
+                                src={championship.altJerseyUrl}
+                                alt="Suplente"
+                                className="h-20 sm:h-24 md:h-32 lg:h-40 mx-auto object-contain mb-1 md:mb-2"
+                              />
+                              <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Suplente</p>
+                            </div>
+                          )}
+
+                          {/* Columna izquierda abajo: Titular arquero */}
+                          <div className="text-center">
+                            <img
+                              src="/jerseys/2025-apertura-arq.png"
+                              alt="Titular Arquero"
+                              className="h-20 sm:h-24 md:h-32 lg:h-40 mx-auto object-contain mb-1 md:mb-2"
+                            />
+                            <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Arquero</p>
+                          </div>
+
+                          {/* Columna derecha abajo: Suplente arquero */}
+                          <div className="text-center">
+                            <img
+                              src="/jerseys/2025-clausura-arq.png"
+                              alt="Suplente Arquero"
+                              className="h-20 sm:h-24 md:h-32 lg:h-40 mx-auto object-contain mb-1 md:mb-2"
+                            />
+                            <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Arquero</p>
+                          </div>
+                        </div>
+                      ) : championship.year === 2024 ? (
+                        /* Layout para 2024: 2 columnas (Titular + Arquero) */
+                        <div className="grid grid-cols-2 gap-2 md:gap-3">
+                          {championship.jerseyUrl && (
+                            <div className="text-center">
+                              <img
+                                src={championship.jerseyUrl}
+                                alt="Titular"
+                                className="h-20 sm:h-24 md:h-32 lg:h-48 mx-auto object-contain mb-1 md:mb-2"
+                              />
+                              <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Titular</p>
+                            </div>
+                          )}
+                          {getGoalkeeperJerseyUrl(championship.year, championship.season) && (
+                            <div className="text-center">
+                              <img
+                                src={getGoalkeeperJerseyUrl(championship.year, championship.season)!}
+                                alt="Arquero"
+                                className="h-20 sm:h-24 md:h-32 lg:h-48 mx-auto object-contain mb-1 md:mb-2"
+                              />
+                              <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Arquero</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        /* Layout para 2025: 3 columnas (Titular + Suplente + Arquero) */
+                        <div className="grid grid-cols-3 gap-2 md:gap-3">
+                          {championship.jerseyUrl && (
+                            <div className="text-center">
+                              <img
+                                src={championship.jerseyUrl}
+                                alt="Titular"
                                 className="h-20 sm:h-24 md:h-32 lg:h-48 mx-auto object-contain mb-1 md:mb-2"
                               />
                               <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Titular</p>
@@ -227,7 +232,7 @@ export default function ChampionshipTimeline() {
                             <div className="text-center">
                               <img
                                 src={championship.altJerseyUrl}
-                                alt="Camiseta suplente"
+                                alt="Suplente"
                                 className="h-20 sm:h-24 md:h-32 lg:h-48 mx-auto object-contain mb-1 md:mb-2"
                               />
                               <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Suplente</p>
@@ -237,7 +242,7 @@ export default function ChampionshipTimeline() {
                             <div className="text-center">
                               <img
                                 src={getGoalkeeperJerseyUrl(championship.year, championship.season)!}
-                                alt="Camiseta arquero"
+                                alt="Arquero"
                                 className="h-20 sm:h-24 md:h-32 lg:h-48 mx-auto object-contain mb-1 md:mb-2"
                               />
                               <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-600">Arquero</p>
