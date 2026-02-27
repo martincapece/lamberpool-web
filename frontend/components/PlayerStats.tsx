@@ -4,9 +4,10 @@ interface PlayerStatsProps {
   goals: number;
   rating: number;
   matches?: number;
+  jerseyUrl?: string;
 }
 
-export default function PlayerStats({ name, number, goals, rating, matches = 0 }: PlayerStatsProps) {
+export default function PlayerStats({ name, number, goals, rating, matches = 0, jerseyUrl }: PlayerStatsProps) {
   const ratingColor =
     rating >= 8
       ? 'text-green-600'
@@ -19,7 +20,18 @@ export default function PlayerStats({ name, number, goals, rating, matches = 0 }
             : 'text-gray-400';
 
   return (
-    <div className="bg-white rounded-lg shadow p-3 md:p-4 hover:shadow-lg transition">
+    <div className="bg-white rounded-lg shadow p-3 md:p-4 hover:shadow-lg transition overflow-hidden">
+      {/* Jersey Image */}
+      {jerseyUrl && (
+        <div className="mb-3 flex justify-center">
+          <img
+            src={jerseyUrl}
+            alt={`${name} jersey`}
+            className="h-24 md:h-32 object-contain"
+          />
+        </div>
+      )}
+      
       <div className="flex justify-between items-start mb-2 md:mb-3">
         <div>
           <p className="text-xs md:text-sm text-gray-500">#{number}</p>

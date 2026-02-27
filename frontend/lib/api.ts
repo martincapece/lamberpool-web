@@ -39,6 +39,10 @@ export const competitionsAPI = {
     apiClient.put(`/competitions/${id}/final-table-photo`, { photoUrl }),
   deleteFinalTablePhoto: (id: string) => 
     apiClient.delete(`/competitions/${id}/final-table-photo`),
+  updateJersey: (id: string, jerseyUrl: string) =>
+    apiClient.put(`/competitions/${id}/jersey`, { jerseyUrl }),
+  deleteJersey: (id: string) =>
+    apiClient.delete(`/competitions/${id}/jersey`),
 };
 
 // Judges endpoints

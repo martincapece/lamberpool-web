@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { playersAPI } from '@/lib/api';
+import { playersAPI, teamAPI, seasonsAPI, competitionsAPI } from '@/lib/api';
 import PlayerStats from '@/components/PlayerStats';
 import PlayerStatsFilters, { FilterOptions } from '@/components/PlayerStatsFilters';
 
@@ -14,17 +14,37 @@ interface Player {
 
 export default function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
+  const [jerseyUrl, setJerseyUrl] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterOptions>({ type: 'all' });
 
   useEffect(() => {
-    fetchPlayers();
+    fetchPlayersAndJersey();
   }, []);
 
-  const fetchPlayers = async () => {
+  const fetchPlayersAndJersey = async () => {
     try {
       setLoading(true);
+
+      // Get team
+      const teamRes = await teamAPI.getTeam();
+      const teamId = teamRes.data.id;
+
+      // Get current season (assuming current year)
+      const currentYear = new Date().getFullYear();
+      const seasonsRes = await seasonsAPI.getAll();
+      const currentSeason = seasonsRes.data.find((s: any) => s.year === currentYear);
+
+      if (currentSeason) {
+        // Get active competition for this season
+        const competitionsRes = await competitionsAPI.getActive(currentSeason.id);
+        if (competitionsRes.data?.jerseyUrl) {
+          setJerseyUrl(competitionsRes.data.jerseyUrl);
+        }
+      }
+
+      // Get players
       const response = await playersAPI.getAll();
       const playersData = response.data;
 
@@ -150,6 +170,7 @@ export default function PlayersPage() {
                   goals={stats.goals}
                   rating={stats.rating}
                   matches={stats.matches}
+                  jerseyUrl={jerseyUrl}
                 />
               );
             })}

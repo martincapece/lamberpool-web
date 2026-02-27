@@ -62,6 +62,7 @@ model Competition {
   seasonId              String
   season                Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   isActive              Boolean  @default(true)
+  jerseyUrl             String?  // URL de la camiseta del equipo
   finalTablePhotoUrl    String?  // URL de la foto de la tabla final
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
