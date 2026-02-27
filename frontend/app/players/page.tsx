@@ -49,27 +49,6 @@ export default function PlayersPage() {
     }
   };
 
-      // Enrich players with stats
-      const enrichedPlayers = await Promise.all(
-        playersData.map(async (player: any) => {
-          const stats = player.matchPlayers || [];
-          return {
-            ...player,
-            stats,
-          };
-        })
-      );
-
-      setPlayers(enrichedPlayers);
-      setError(null);
-    } catch (err) {
-      setError('Error al cargar los jugadores');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const getPlayerStats = (player: Player) => {
     let stats = player.matchPlayers || [];
 
