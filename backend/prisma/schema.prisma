@@ -1,0 +1,219 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Team model
+model Team {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tournaments Tournament[]
+  players     Player[]
+  matches     Match[]
+
+  @@map("teams")
+}
+
+// Tournament model (Liga Nuñez - parent)
+model Tournament {
+  id        String   @id @default(cuid())
+  name      String   // "Liga Nuñez"
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  seasons   Season[]
+
+  @@unique([teamId, name])
+  @@map("tournaments")
+}
+
+// Season model (Año: 2024, 2025, etc)
+model Season {
+  id            String   @id @default(cuid())
+  year          Int      // 2024, 2025, etc
+  tournamentId  String
+  tournament    Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  competitions Competition[]
+
+  @@unique([tournamentId, year])
+  @@map("seasons")
+}
+
+// Competition model (Competición específica: "Liga Nuñez 2024 Regular")
+model Competition {
+  id                    String   @id @default(cuid())
+  name                  String   // "Liga Nuñez 2024 Regular"
+  seasonId              String
+  season                Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  isActive              Boolean  @default(true)
+  finalTablePhotoUrl    String?  // URL de la foto de la tabla final
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  matches Match[]
+
+  @@unique([seasonId, name])
+  @@map("competitions")
+}
+
+// Player model
+model Player {
+  id        String   @id @default(cuid())
+  name      String
+  number    Int
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  matchPlayers MatchPlayer[]
+
+  @@unique([teamId, number])
+  @@map("players")
+}
+
+// Judge model (Pato, Chicho, Cape, Stefa, Roña)
+model Judge {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ratings Rating[]
+
+  @@map("judges")
+}
+
+// Guest Judge model (Jueces temporales específicos de un partido)
+model GuestJudge {
+  id        String   @id @default(cuid())
+  name      String
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guestRatings GuestRating[]
+
+  @@map("guest_judges")
+}
+
+// Match model
+model Match {
+  id              String   @id @default(cuid())
+  competitionId   String
+  competition     Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  teamId          String
+  team            Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  opponent        String
+  date            DateTime
+  goalsFor        Int
+  goalsAgainst    Int
+  result          String   // "W", "D", "L"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  matchPlayers MatchPlayer[]
+  photos       Photo[]
+  guestJudges  GuestJudge[]
+
+  @@map("matches")
+}
+
+// Match Player (junction table with additional data)
+model MatchPlayer {
+  id        String   @id @default(cuid())
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  position  String   // "GK", "DEF", "MID", "FWD"
+  goals     Int      @default(0)
+  cards     String   @default("")  // "Y" for yellow, "R" for red, "" for none
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ratings Rating[]
+  guestRatings GuestRating[]
+
+  @@unique([matchId, playerId])
+  @@map("match_players")
+}
+
+// Rating from each judge
+model Rating {
+  id           String   @id @default(cuid())
+  matchPlayerId String
+  matchPlayer  MatchPlayer @relation(fields: [matchPlayerId], references: [id], onDelete: Cascade)
+  judgeId      String
+  judge        Judge    @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  score        Float    // 1.0 to 10.0, can have .5
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([matchPlayerId, judgeId])
+  @@map("ratings")
+}
+
+// Guest Rating from guest judges
+model GuestRating {
+  id            String   @id @default(cuid())
+  matchPlayerId String
+  matchPlayer   MatchPlayer @relation(fields: [matchPlayerId], references: [id], onDelete: Cascade)
+  guestJudgeId  String
+  guestJudge    GuestJudge @relation(fields: [guestJudgeId], references: [id], onDelete: Cascade)
+  score         Float    // 1.0 to 10.0, can have .5
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([matchPlayerId, guestJudgeId])
+  @@map("guest_ratings")
+}
+
+// Photo model
+model Photo {
+  id        String   @id @default(cuid())
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  url       String
+  cloudinaryId String?
+  uploadedAt DateTime @default(now())
+
+  @@map("photos")
+}
+
+// Championship model (Historial de campeonatos)
+model Championship {
+  id        String   @id @default(cuid())
+  year      Int
+  season    String   // "Apertura" o "Clausura"
+  division  String   // "1ra Division", "5ta Division", etc
+  tournament String  // "Liga Castrol", "Liga Nuñez", etc
+  title     String   // "Campeonato" o "Subcampeonato"
+  jerseyUrl String?  // URL de la camiseta
+  altJerseyUrl String? // URL de la camiseta suplente (opcional)
+  description String? // Descripción adicional (opcional)
+  order     Int      @default(0) // Para ordenar en la timeline
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([year, season, division])
+  @@index([year])
+  @@map("championships")
+}
