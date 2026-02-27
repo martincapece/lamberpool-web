@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { playersAPI, teamAPI, seasonsAPI, competitionsAPI } from '@/lib/api';
+import { playersAPI, seasonsAPI, competitionsAPI } from '@/lib/api';
 import PlayerStats from '@/components/PlayerStats';
 import PlayerStatsFilters, { FilterOptions } from '@/components/PlayerStatsFilters';
 
@@ -26,10 +26,6 @@ export default function PlayersPage() {
   const fetchPlayersAndJersey = async () => {
     try {
       setLoading(true);
-
-      // Get team
-      const teamRes = await teamAPI.getTeam();
-      const teamId = teamRes.data.id;
 
       // Get current season (assuming current year)
       const currentYear = new Date().getFullYear();
