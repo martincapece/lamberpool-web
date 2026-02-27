@@ -1,9 +1,50 @@
 import { Router } from 'express';
+import { v2 as cloudinary } from 'cloudinary';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
 
-// GET all photos for a match
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// POST upload photo to Cloudinary and save URL to DB
+router.post('/upload', async (req, res) => {
+  try {
+    const { matchId, imageBase64 } = req.body;
+
+    if (!matchId || !imageBase64) {
+      return res.status(400).json({ error: 'matchId and imageBase64 are required' });
+    }
+
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(imageBase64, {
+      folder: 'lamberpool',
+      resource_type: 'auto',
+    });
+
+    // Save photo record to DB
+    const photo = await prisma.photo.create({
+      data: {
+        matchId,
+        url: result.secure_url,
+        cloudinaryId: result.public_id,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      photo,
+      cloudinaryUrl: result.secure_url,
+    });
+  } catch (error: any) {
+    console.error('❌ Cloudinary upload error:', error);
+    res.status(500).json({ error: 'Failed to upload photo to Cloudinary' });
+  }
+});
 router.get('/:matchId', async (req, res) => {
   try {
     const photos = await prisma.photo.findMany({

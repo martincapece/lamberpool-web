@@ -88,6 +88,8 @@ export const ratingsAPI = {
 export const photosAPI = {
   getByMatch: (matchId: string) => apiClient.get(`/photos/${matchId}`),
   add: (data: any) => apiClient.post('/photos', data),
+  upload: (matchId: string, imageBase64: string) =>
+    apiClient.post('/photos/upload', { matchId, imageBase64 }),
   delete: (id: string) => apiClient.delete(`/photos/${id}`),
 };
 
