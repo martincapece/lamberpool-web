@@ -52,11 +52,12 @@ async function main() {
   // Create competition for this season
   const competition = await prisma.competition.upsert({
     where: { seasonId_name: { seasonId: season.id, name: 'Fase Regular' } },
-    update: { isActive: true },
+    update: { isActive: true, jerseyUrl: '/jerseys/2025-apertura.png' },
     create: {
       name: 'Fase Regular',
       seasonId: season.id,
       isActive: true,
+      jerseyUrl: '/jerseys/2025-apertura.png',
     },
   });
   console.log('✓ Competition created: Fase Regular');
