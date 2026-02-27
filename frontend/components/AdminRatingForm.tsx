@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { matchesAPI, matchPlayersAPI, ratingsAPI, judgesAPI, teamAPI, guestJudgesAPI, guestRatingsAPI } from '@/lib/api';
+import { matchesAPI, matchPlayersAPI, ratingsAPI, judgesAPI, teamAPI, guestJudgesAPI, guestRatingsAPI, photosAPI } from '@/lib/api';
+import PhotoUpload from './PhotoUpload';
 
 interface Judge {
   id: string;
@@ -40,6 +41,7 @@ export default function AdminRatingForm() {
   const [guestJudges, setGuestJudges] = useState<GuestJudge[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [matchPlayers, setMatchPlayers] = useState<MatchPlayer[]>([]);
+  const [photos, setPhotos] = useState<any[]>([]);
   
   const [selectedMatch, setSelectedMatch] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState('');
@@ -50,6 +52,7 @@ export default function AdminRatingForm() {
   
   const [newGuestJudgeName, setNewGuestJudgeName] = useState('');
   const [addingGuestJudge, setAddingGuestJudge] = useState(false);
+  const [deletingPhoto, setDeletingPhoto] = useState<string>('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -83,6 +86,10 @@ export default function AdminRatingForm() {
           // Load guest judges for this match
           const guestJudgesRes = await guestJudgesAPI.getByMatch(selectedMatch);
           setGuestJudges(guestJudgesRes.data);
+          
+          // Load photos for this match
+          const photosRes = await photosAPI.getByMatch(selectedMatch);
+          setPhotos(photosRes.data || []);
           
           setSelectedPlayer('');
           setRatings({});
@@ -212,6 +219,37 @@ export default function AdminRatingForm() {
     } catch (err: any) {
       console.error('Error eliminando juez invitado:', err);
       setError(err.response?.data?.error || 'Error al eliminar juez invitado');
+    }
+  };
+
+  const handleDeletePhoto = async (photoId: string) => {
+    if (!confirm('¿Eliminar esta foto?')) {
+      return;
+    }
+
+    setDeletingPhoto(photoId);
+    try {
+      await photosAPI.delete(photoId);
+      setPhotos(prev => prev.filter(p => p.id !== photoId));
+      setSuccess('Foto eliminada exitosamente');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      console.error('Error eliminando foto:', err);
+      setError(err.response?.data?.error || 'Error al eliminar foto');
+    } finally {
+      setDeletingPhoto('');
+    }
+  };
+
+  const handlePhotoUploaded = async () => {
+    // Refresh photos list
+    if (selectedMatch) {
+      try {
+        const photosRes = await photosAPI.getByMatch(selectedMatch);
+        setPhotos(photosRes.data || []);
+      } catch (err) {
+        console.error('Error al recargar fotos:', err);
+      }
     }
   };
 
@@ -378,6 +416,40 @@ export default function AdminRatingForm() {
               </button>
             </div>
           </div>
+
+          {/* Photo Upload Section */}
+          <div className="space-y-3">
+            <PhotoUpload 
+              matchId={selectedMatch} 
+              onPhotoUploaded={handlePhotoUploaded}
+            />
+          </div>
+
+          {/* Photos Gallery */}
+          {photos.length > 0 && (
+            <div className="space-y-3 p-4 border rounded bg-gray-50">
+              <h4 className="text-sm font-semibold text-gray-800">Fotos del Partido ({photos.length})</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {photos.map(photo => (
+                  <div key={photo.id} className="relative group">
+                    <img
+                      src={photo.url}
+                      alt="Match photo"
+                      className="w-full h-32 object-cover rounded border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePhoto(photo.id)}
+                      disabled={deletingPhoto === photo.id}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium mb-1">Selecciona Jugador</label>
