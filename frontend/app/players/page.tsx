@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { playersAPI, seasonsAPI, competitionsAPI } from '@/lib/api';
+import { playersAPI, tournamentsAPI, seasonsAPI, competitionsAPI } from '@/lib/api';
 import PlayerStats from '@/components/PlayerStats';
 import PlayerStatsFilters, { FilterOptions } from '@/components/PlayerStatsFilters';
 
@@ -27,16 +27,20 @@ export default function PlayersPage() {
     try {
       setLoading(true);
 
-      // Get current season (assuming current year)
-      const currentYear = new Date().getFullYear();
-      const seasonsRes = await seasonsAPI.getAll();
-      const currentSeason = seasonsRes.data.find((s: any) => s.year === currentYear);
-
-      if (currentSeason) {
-        // Get active competition for this season
-        const competitionsRes = await competitionsAPI.getActive(currentSeason.id);
-        if (competitionsRes.data?.jerseyUrl) {
-          setJerseyUrl(competitionsRes.data.jerseyUrl);
+      // Get active tournament (Liga Nuñez)
+      const tournamentsRes = await tournamentsAPI.getActive();
+      const activeTeam = tournamentsRes.data;
+      
+      if (activeTeam?.id) {
+        // Get active season for this tournament
+        const seasonRes = await seasonsAPI.getActive(activeTeam.id);
+        
+        if (seasonRes.data?.id) {
+          // Get active competition for this season
+          const competitionsRes = await competitionsAPI.getActive(seasonRes.data.id);
+          if (competitionsRes.data?.jerseyUrl) {
+            setJerseyUrl(competitionsRes.data.jerseyUrl);
+          }
         }
       }
 
