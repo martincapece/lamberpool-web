@@ -12,8 +12,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "noImplicitAny": false,
-    "types": ["node"]
+    "noImplicitAny": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
