@@ -18,7 +18,7 @@ router.get('/options', async (req, res) => {
     });
 
     // Extract unique years
-    const years = [...new Set(seasons.map(s => s.year))].sort((a, b) => b - a);
+    const years = [...new Set(seasons.map(s => s.year))].sort((a, b) => Number(b) - Number(a));
 
     // Extract tournaments with their info
     const tournamentsMap = new Map();
