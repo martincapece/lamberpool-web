@@ -26,9 +26,9 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Validate score is between 1 and 10
-    if (score < 1 || score > 10) {
-      return res.status(400).json({ error: 'Score must be between 1 and 10' });
+    // Validate score is between -10 and 10
+    if (score < -10 || score > 10) {
+      return res.status(400).json({ error: 'Score must be between -10 and 10' });
     }
 
     const guestRating = await prisma.guestRating.upsert({
