@@ -531,7 +531,7 @@ export default function AdminRatingForm() {
                   type="number"
                   value={ratings[judge.id] || ''}
                   onChange={(e) => handleRatingChange(judge.id, e.target.value)}
-                  min="1"
+                  min="-10"
                   max="10"
                   step="0.5"
                   placeholder="Ej: 8.5"
@@ -554,7 +554,7 @@ export default function AdminRatingForm() {
                       type="number"
                       value={guestRatings[guestJudge.id] || ''}
                       onChange={(e) => handleGuestRatingChange(guestJudge.id, e.target.value)}
-                      min="1"
+                      min="-10"
                       max="10"
                       step="0.5"
                       placeholder="Ej: 8.5"
