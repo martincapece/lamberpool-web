@@ -36,6 +36,7 @@ const ratingTone = (rating: number) => {
   if (rating >= 6) return 'bg-yellow-500 text-gray-900';
   if (rating >= 4) return 'bg-orange-500 text-white';
   if (rating > 0) return 'bg-red-500 text-white';
+  if (rating < 0) return 'bg-purple-500 text-white';
   return 'bg-gray-300 text-gray-700';
 };
 
