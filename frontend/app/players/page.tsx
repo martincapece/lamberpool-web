@@ -287,7 +287,7 @@ export default function PlayersPage() {
                       stats,
                     };
                   })
-                  .sort((a, b) => b.stats.rating - a.stats.rating)
+                  .sort((a, b) => (b.stats.rating ?? -Infinity) - (a.stats.rating ?? -Infinity))
                   .map((player) => {
                     const ratingColor =
                       player.stats.rating === null
