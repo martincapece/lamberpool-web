@@ -50,7 +50,7 @@ const getRating = (player: MatchPlayer) => {
   const totalRatings = regularRatings.length + guestRatings.length;
   
   if (totalRatings === 0) {
-    return 0;
+    return null; // No ratings assigned
   }
   
   const regularTotal = regularRatings.reduce((sum, r) => sum + r.score, 0);
@@ -114,8 +114,8 @@ export default function MatchLineupViewer({ matchId: propMatchId }: Props) {
         </div>
         <p className="font-bold text-white text-xs md:text-sm text-center leading-tight drop-shadow-lg">{player.player.name}</p>
         <div className="flex items-center gap-0.5 md:gap-1.5">
-          <span className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-bold shadow ${ratingTone(rating)}`}>
-            {rating === 0 ? 'S/N' : rating.toFixed(1)}
+          <span className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-bold shadow ${ratingTone(rating ?? 0)}`}>
+            {rating === null ? 'S/N' : rating.toFixed(1)}
           </span>
           {player.goals > 0 && (
             <span className="text-[10px] md:text-xs bg-green-500 text-white px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-bold shadow">
@@ -140,8 +140,8 @@ export default function MatchLineupViewer({ matchId: propMatchId }: Props) {
           {player.player.number}
         </div>
         <p className="font-semibold text-[10px] md:text-xs text-center leading-tight">{player.player.name}</p>
-        <span className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-bold ${ratingTone(rating)}`}>
-          {rating === 0 ? 'S/N' : rating.toFixed(1)}
+        <span className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-bold ${ratingTone(rating ?? 0)}`}>
+          {rating === null ? 'S/N' : rating.toFixed(1)}
         </span>
       </div>
     );

@@ -102,7 +102,7 @@ export default function PlayersPage() {
 
     return {
       goals: totalGoals,
-      rating: matchCount > 0 ? totalRating / matchCount : 0,
+      rating: matchCount > 0 ? totalRating / matchCount : null,
       matches: stats.length,
       yellowCards,
       redCards,
@@ -290,15 +290,19 @@ export default function PlayersPage() {
                   .sort((a, b) => b.stats.rating - a.stats.rating)
                   .map((player) => {
                     const ratingColor =
-                      player.stats.rating >= 8
-                        ? 'text-green-600'
-                        : player.stats.rating >= 6
-                          ? 'text-blue-600'
-                          : player.stats.rating >= 4
-                            ? 'text-yellow-600'
-                            : player.stats.rating > 0
-                              ? 'text-red-600'
-                              : 'text-gray-400';
+                      player.stats.rating === null
+                        ? 'text-gray-400'
+                        : player.stats.rating >= 8
+                          ? 'text-green-600'
+                          : player.stats.rating >= 6
+                            ? 'text-blue-600'
+                            : player.stats.rating >= 4
+                              ? 'text-yellow-600'
+                              : player.stats.rating > 0
+                                ? 'text-red-600'
+                                : player.stats.rating < 0
+                                  ? 'text-purple-600'
+                                  : 'text-gray-400';
                     return (
                       <tr key={player.id} className="hover:bg-gray-50">
                         <td className="px-3 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900">
@@ -310,11 +314,8 @@ export default function PlayersPage() {
                         <td className="px-3 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-center text-blue-600 font-semibold">
                           {player.stats.matches}
                         </td>
-                        <td className="px-3 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-center text-green-600 font-semibold">
-                          {player.stats.goals}
-                        </td>
                         <td className={`px-3 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-center font-bold ${ratingColor}`}>
-                          {player.stats.rating > 0 ? player.stats.rating.toFixed(2) : '-'}
+                          {player.stats.rating !== null ? player.stats.rating.toFixed(2) : '-'}
                         </td>
                       </tr>
                     );

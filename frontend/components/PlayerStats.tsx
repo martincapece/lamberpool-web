@@ -2,23 +2,25 @@ interface PlayerStatsProps {
   name: string;
   number: number;
   goals: number;
-  rating: number;
+  rating: number | null;
   matches?: number;
 }
 
 export default function PlayerStats({ name, number, goals, rating, matches = 0 }: PlayerStatsProps) {
   const ratingColor =
-    rating >= 8
-      ? 'text-green-600'
-      : rating >= 6
-        ? 'text-blue-600'
-        : rating >= 4
-          ? 'text-yellow-600'
-          : rating > 0
-            ? 'text-red-600'
-            : rating < 0
-              ? 'text-purple-600'
-              : 'text-gray-400';
+    rating === null
+      ? 'text-gray-400'
+      : rating >= 8
+        ? 'text-green-600'
+        : rating >= 6
+          ? 'text-blue-600'
+          : rating >= 4
+            ? 'text-yellow-600'
+            : rating > 0
+              ? 'text-red-600'
+              : rating < 0
+                ? 'text-purple-600'
+                : 'text-gray-400';
 
   return (
     <div className="bg-white rounded-lg shadow p-3 md:p-4 hover:shadow-lg transition">
@@ -28,7 +30,7 @@ export default function PlayerStats({ name, number, goals, rating, matches = 0 }
           <h3 className="text-base md:text-lg font-bold text-gray-800">{name}</h3>
         </div>
         <span className={`text-xl md:text-2xl font-bold ${ratingColor}`}>
-          {rating !== 0 ? rating.toFixed(1) : 'S/N'}
+          {rating !== null ? rating.toFixed(1) : 'S/N'}
         </span>
       </div>
 
@@ -44,7 +46,7 @@ export default function PlayerStats({ name, number, goals, rating, matches = 0 }
         <div className="text-center">
           <p className="text-gray-500 text-[10px] md:text-xs">Valoración</p>
           <p className={`text-base md:text-lg font-bold ${ratingColor}`}>
-            {rating !== 0 ? rating.toFixed(1) : '-'}
+            {rating !== null ? rating.toFixed(1) : '-'}
           </p>
         </div>
       </div>
