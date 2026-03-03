@@ -314,6 +314,9 @@ export default function PlayersPage() {
                         <td className="px-3 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-center text-blue-600 font-semibold">
                           {player.stats.matches}
                         </td>
+                        <td className="px-3 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-center text-green-600 font-semibold">
+                          {player.stats.goals}
+                        </td>
                         <td className={`px-3 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-center font-bold ${ratingColor}`}>
                           {player.stats.rating !== null ? player.stats.rating.toFixed(2) : '-'}
                         </td>
