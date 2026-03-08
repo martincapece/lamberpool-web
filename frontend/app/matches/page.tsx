@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { matchesAPI } from '@/lib/api';
 import MatchLineupViewer from '@/components/MatchLineupViewer';
 import MatchPhotosGallery from '@/components/MatchPhotosGallery';
+import MatchYoutubeVideo from '@/components/MatchYoutubeVideo';
 import MatchCompetitionFilter from '@/components/MatchCompetitionFilter';
 
 interface Match {
@@ -15,6 +16,7 @@ interface Match {
   goalsFor: number;
   goalsAgainst: number;
   result: 'W' | 'D' | 'L';
+  youtubeUrl?: string;
   competition?: {
     id: string;
     name: string;
@@ -136,6 +138,13 @@ function MatchesContent() {
           </div>
         </div>
       </section>
+
+      {/* Sección de video de YouTube */}
+      {selectedMatch.youtubeUrl && (
+        <section>
+          <MatchYoutubeVideo youtubeUrl={selectedMatch.youtubeUrl} />
+        </section>
+      )}
 
       <section className="bg-white rounded-lg shadow p-4 md:p-6">
         <h2 className="text-xl md:text-2xl font-bold text-blue-900 mb-4 md:mb-6">Alineación</h2>
