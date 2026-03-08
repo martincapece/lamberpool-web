@@ -104,7 +104,7 @@ router.post('/', async (req, res) => {
 // PUT update match
 router.put('/:id', async (req, res) => {
   try {
-    const { opponent, date, goalsFor, goalsAgainst } = req.body;
+    const { opponent, date, goalsFor, goalsAgainst, youtubeUrl } = req.body;
 
     const result =
       goalsFor > goalsAgainst ? 'W' : goalsFor < goalsAgainst ? 'L' : 'D';
@@ -117,6 +117,7 @@ router.put('/:id', async (req, res) => {
         goalsFor,
         goalsAgainst,
         result,
+        youtubeUrl: youtubeUrl || null,
       },
       include: {
         matchPlayers: {
