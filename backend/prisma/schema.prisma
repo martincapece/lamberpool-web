@@ -126,6 +126,7 @@ model Match {
   goalsFor        Int
   goalsAgainst    Int
   result          String   // "W", "D", "L"
+  youtubeUrl      String?  // Link del video del partido
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

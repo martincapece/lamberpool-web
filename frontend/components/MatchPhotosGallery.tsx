@@ -16,7 +16,7 @@ interface MatchPhotosGalleryProps {
 export default function MatchPhotosGallery({ matchId }: MatchPhotosGalleryProps) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
 
   useEffect(() => {
     loadPhotos();
@@ -32,6 +32,20 @@ export default function MatchPhotosGallery({ matchId }: MatchPhotosGalleryProps)
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePrevious = () => {
+    if (selectedPhotoIndex === null) return;
+    setSelectedPhotoIndex((selectedPhotoIndex - 1 + photos.length) % photos.length);
+  };
+
+  const handleNext = () => {
+    if (selectedPhotoIndex === null) return;
+    setSelectedPhotoIndex((selectedPhotoIndex + 1) % photos.length);
+  };
+
+  const closeModal = () => {
+    setSelectedPhotoIndex(null);
   };
 
   if (loading) {
@@ -50,15 +64,17 @@ export default function MatchPhotosGallery({ matchId }: MatchPhotosGalleryProps)
     );
   }
 
+  const selectedPhoto = selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null;
+
   return (
     <div className="space-y-4">
       {/* Galería en grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
-        {photos.map((photo) => (
+        {photos.map((photo, index) => (
           <div
             key={photo.id}
             className="cursor-pointer group relative overflow-hidden rounded-lg shadow-md hover:shadow-lg transition"
-            onClick={() => setSelectedPhoto(photo)}
+            onClick={() => setSelectedPhotoIndex(index)}
           >
             <img
               src={photo.url}
@@ -77,28 +93,55 @@ export default function MatchPhotosGallery({ matchId }: MatchPhotosGalleryProps)
         ))}
       </div>
 
-      {/* Modal de visor */}
-      {selectedPhoto && (
+      {/* Modal de visor con carrousel */}
+      {selectedPhoto && selectedPhotoIndex !== null && (
         <div
           className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-2 md:p-4"
-          onClick={() => setSelectedPhoto(null)}
+          onClick={closeModal}
         >
           <div
             className="relative max-w-4xl w-full"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Imagen principal */}
             <img
               src={selectedPhoto.url}
               alt="Full size"
               className="w-full max-h-[90vh] md:max-h-[85vh] object-contain rounded-lg shadow-2xl"
             />
+
+            {/* Botón cerrar */}
             <button
-              onClick={() => setSelectedPhoto(null)}
+              onClick={closeModal}
               className="absolute top-2 md:top-4 right-2 md:right-4 bg-black/50 text-white p-1.5 md:p-2 rounded-full hover:bg-black/75 transition text-base md:text-lg"
             >
               ✕
             </button>
-            <div className="absolute bottom-2 md:bottom-4 left-2 md:left-4 bg-black/50 text-white px-2 md:px-3 py-1 md:py-2 rounded">
+
+            {/* Botón anterior */}
+            {photos.length > 1 && (
+              <button
+                onClick={handlePrevious}
+                className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white rounded-full p-2 md:p-3 transition text-xl md:text-2xl"
+                aria-label="Foto anterior"
+              >
+                ← Prev
+              </button>
+            )}
+
+            {/* Botón siguiente */}
+            {photos.length > 1 && (
+              <button
+                onClick={handleNext}
+                className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white rounded-full p-2 md:p-3 transition text-xl md:text-2xl"
+                aria-label="Siguiente foto"
+              >
+                Next →
+              </button>
+            )}
+
+            {/* Información de fecha y contador */}
+            <div className="absolute bottom-2 md:bottom-4 left-2 md:left-4 md:left-auto md:right-2 md:bottom-4 space-y-2 bg-black/50 text-white px-2 md:px-3 py-1 md:py-2 rounded">
               <p className="text-xs md:text-sm">
                 {new Date(selectedPhoto.uploadedAt).toLocaleDateString('es-ES', {
                   weekday: 'long',
@@ -109,6 +152,11 @@ export default function MatchPhotosGallery({ matchId }: MatchPhotosGalleryProps)
                   minute: '2-digit',
                 })}
               </p>
+              {photos.length > 1 && (
+                <p className="text-xs md:text-sm font-semibold">
+                  {selectedPhotoIndex + 1} / {photos.length}
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -9,6 +9,7 @@ interface Match {
   date: string;
   goalsFor: number;
   goalsAgainst: number;
+  youtubeUrl?: string;
 }
 
 interface MatchPlayer {
@@ -58,6 +59,14 @@ export default function AdminMatchManagement() {
   const [formationKey, setFormationKey] = useState<FormationKey>('2-4-1');
   const [slotAssignments, setSlotAssignments] = useState<Record<string, string>>({});
   
+  // Nuevos estados para goles y YouTube
+  const [matchScoreForm, setMatchScoreForm] = useState({
+    goalsFor: 0,
+    goalsAgainst: 0,
+    youtubeUrl: '',
+  });
+  const [savingScore, setSavingScore] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -80,11 +89,21 @@ export default function AdminMatchManagement() {
   useEffect(() => {
     if (selectedMatch) {
       loadMatchPlayers();
+      // Cargar datos del partido para el formulario de goles/youtube
+      const match = matches.find(m => m.id === selectedMatch);
+      if (match) {
+        setMatchScoreForm({
+          goalsFor: match.goalsFor,
+          goalsAgainst: match.goalsAgainst,
+          youtubeUrl: match.youtubeUrl || '',
+        });
+      }
     } else {
       setMatchPlayers([]);
       setSlotAssignments({});
+      setMatchScoreForm({ goalsFor: 0, goalsAgainst: 0, youtubeUrl: '' });
     }
-  }, [selectedMatch]);
+  }, [selectedMatch, matches]);
 
   const loadMatchPlayers = async () => {
     try {
@@ -138,6 +157,29 @@ export default function AdminMatchManagement() {
       setError(err.response?.data?.error || 'Error al actualizar posiciones');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveScore = async () => {
+    if (!selectedMatch) return;
+
+    setSavingScore(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await matchesAPI.update(selectedMatch, {
+        goalsFor: matchScoreForm.goalsFor,
+        goalsAgainst: matchScoreForm.goalsAgainst,
+        youtubeUrl: matchScoreForm.youtubeUrl || null,
+      });
+
+      setSuccess('¡Resultado y YouTube actualizados exitosamente!');
+      loadMatches();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Error al actualizar resultado');
+    } finally {
+      setSavingScore(false);
     }
   };
 
@@ -204,6 +246,60 @@ export default function AdminMatchManagement() {
               {new Date(selectedMatchData.date).toLocaleDateString('es-ES')} - 
               Resultado: {selectedMatchData.goalsFor}-{selectedMatchData.goalsAgainst}
             </p>
+          </div>
+
+          {/* Sección de edición de goles y YouTube */}
+          <div className="bg-amber-50 p-6 rounded-lg border-2 border-amber-300 space-y-4">
+            <h4 className="text-md font-semibold text-amber-900">📊 Editar Resultado y Video</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Goles a Favor</label>
+                <input
+                  type="number"
+                  value={matchScoreForm.goalsFor}
+                  onChange={(e) => setMatchScoreForm({ ...matchScoreForm, goalsFor: parseInt(e.target.value) || 0 })}
+                  min="0"
+                  className="w-full p-2 border rounded text-center text-lg font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Goles en Contra</label>
+                <input
+                  type="number"
+                  value={matchScoreForm.goalsAgainst}
+                  onChange={(e) => setMatchScoreForm({ ...matchScoreForm, goalsAgainst: parseInt(e.target.value) || 0 })}
+                  min="0"
+                  className="w-full p-2 border rounded text-center text-lg font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Resumen</label>
+                <div className="flex items-center justify-center text-3xl font-bold text-blue-600 h-10 bg-white border rounded">
+                  {matchScoreForm.goalsFor} - {matchScoreForm.goalsAgainst}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Link YouTube (opcional)</label>
+              <input
+                type="url"
+                value={matchScoreForm.youtubeUrl}
+                onChange={(e) => setMatchScoreForm({ ...matchScoreForm, youtubeUrl: e.target.value })}
+                placeholder="https://youtube.com/watch?v=..."
+                className="w-full p-2 border rounded text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">Puedes agregar o modificar el link en cualquier momento</p>
+            </div>
+
+            <button
+              onClick={handleSaveScore}
+              disabled={savingScore}
+              className="w-full bg-amber-600 text-white p-3 rounded font-medium hover:bg-amber-700 disabled:opacity-50"
+            >
+              {savingScore ? '⏳ Guardando...' : '💾 Guardar Resultado y Video'}
+            </button>
           </div>
 
           <div className="bg-gray-50 p-6 rounded-lg space-y-4">
