@@ -58,6 +58,13 @@ export default function AdminRatingForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const formatCardsLabel = (cardsValue: string) => {
+    if (cardsValue === 'Y') return '🟨';
+    if (cardsValue === 'R') return '🟥';
+    if (cardsValue === 'YY') return '🟨🟥';
+    return cardsValue;
+  };
+
   // Load judges and matches
   useEffect(() => {
     const loadData = async () => {
@@ -464,7 +471,7 @@ export default function AdminRatingForm() {
                 <option key={mp.id} value={mp.id}>
                   #{mp.player.number} - {mp.player.name} ({mp.position})
                   {mp.goals > 0 ? ` ⚽${mp.goals}` : ''}
-                  {mp.cards ? ` 🟨${mp.cards}` : ''}
+                  {mp.cards ? ` ${formatCardsLabel(mp.cards)}` : ''}
                 </option>
               ))}
             </select>

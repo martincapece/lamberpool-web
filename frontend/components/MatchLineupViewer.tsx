@@ -59,6 +59,13 @@ const getRating = (player: MatchPlayer) => {
   return parseFloat(((regularTotal + guestTotal) / totalRatings).toFixed(2));
 };
 
+const formatCardsBadge = (cards: string) => {
+  if (cards === 'Y') return '🟨';
+  if (cards === 'R') return '🟥';
+  if (cards === 'YY') return '🟨🟥';
+  return cards;
+};
+
 export default function MatchLineupViewer({ matchId: propMatchId }: Props) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState('');
@@ -119,13 +126,14 @@ export default function MatchLineupViewer({ matchId: propMatchId }: Props) {
             {rating === null ? 'S/N' : rating.toFixed(1)}
           </span>
           {player.goals > 0 && (
-            <span className="text-[10px] md:text-xs bg-green-500 text-white px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-bold shadow">
-              ⚽{player.goals}
+            <span className="inline-flex items-center justify-center gap-0.5 text-[10px] md:text-xs leading-none bg-green-500 text-white px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-bold shadow">
+              <span>⚽</span>
+              <span>{player.goals}</span>
             </span>
           )}
           {player.cards && (
             <span className="text-[10px] md:text-xs bg-yellow-400 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full shadow">
-              {player.cards === 'Y' ? '🟨' : player.cards === 'R' ? '🟥' : `🟨${player.cards}`}
+              {formatCardsBadge(player.cards)}
             </span>
           )}
         </div>

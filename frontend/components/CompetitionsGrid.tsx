@@ -68,7 +68,7 @@ export default function CompetitionsGrid() {
     const lowerName = competitionName.toLowerCase();
     if (lowerName.includes('regular')) return '⚽';
     if (lowerName.includes('playoff')) return '🏆';
-    if (lowerName.includes('fase')) return '📋';
+    if (lowerName.includes('fase')) return '🏆';
     return '⚽';
   };
 
