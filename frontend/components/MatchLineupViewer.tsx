@@ -65,14 +65,15 @@ export default function MatchLineupViewer({ matchId: propMatchId }: Props) {
   const [matchPlayers, setMatchPlayers] = useState<MatchPlayer[]>([]);
 
   useEffect(() => {
+    if (propMatchId) {
+      setSelectedMatch(propMatchId);
+      return;
+    }
+
     const loadMatches = async () => {
       try {
         const response = await matchesAPI.getAll();
         setMatches(response.data);
-        // Si se proporciona matchId como prop, úsalo automáticamente
-        if (propMatchId) {
-          setSelectedMatch(propMatchId);
-        }
       } catch (err) {
         console.error(err);
       }
@@ -179,16 +180,18 @@ export default function MatchLineupViewer({ matchId: propMatchId }: Props) {
         </div>
       )}
 
-      {selectedMatch && selectedMatchData && (
+      {selectedMatch && (
         <div className="space-y-4 md:space-y-6">
-          {/* Header del partido */}
-          <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white p-4 md:p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl md:text-3xl font-bold">Lamberpool FC vs {selectedMatchData.opponent}</h2>
-            <p className="text-xs md:text-sm text-blue-100 mt-1">{new Date(selectedMatchData.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-            <p className="text-3xl md:text-4xl font-bold mt-3">
-              {selectedMatchData.goalsFor} - {selectedMatchData.goalsAgainst}
-            </p>
-          </div>
+          {/* Header interno solo cuando no viene matchId por props */}
+          {!propMatchId && selectedMatchData && (
+            <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white p-4 md:p-6 rounded-lg shadow-lg">
+              <h2 className="text-xl md:text-3xl font-bold">Lamberpool FC vs {selectedMatchData.opponent}</h2>
+              <p className="text-xs md:text-sm text-blue-100 mt-1">{new Date(selectedMatchData.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <p className="text-3xl md:text-4xl font-bold mt-3">
+                {selectedMatchData.goalsFor} - {selectedMatchData.goalsAgainst}
+              </p>
+            </div>
+          )}
 
           {/* Campo de Fútbol Horizontal */}
           <div className="w-full mx-auto">

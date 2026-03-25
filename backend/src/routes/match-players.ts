@@ -8,10 +8,30 @@ router.get('/:matchId', async (req, res) => {
   try {
     const matchPlayers = await prisma.matchPlayer.findMany({
       where: { matchId: req.params.matchId },
-      include: {
-        player: true,
-        ratings: { include: { judge: true } },
-        guestRatings: { include: { guestJudge: true } },
+      select: {
+        id: true,
+        playerId: true,
+        matchId: true,
+        position: true,
+        goals: true,
+        cards: true,
+        player: {
+          select: {
+            id: true,
+            name: true,
+            number: true,
+          },
+        },
+        ratings: {
+          select: {
+            score: true,
+          },
+        },
+        guestRatings: {
+          select: {
+            score: true,
+          },
+        },
       },
     });
 

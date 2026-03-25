@@ -13,19 +13,38 @@ router.get('/', async (req, res) => {
         ...(competitionId && { competitionId: competitionId as string }),
         ...(teamId && { teamId: teamId as string }),
       },
-      include: {
-        matchPlayers: {
-          include: {
-            player: true,
-            ratings: { include: { judge: true } },
-            guestRatings: { include: { guestJudge: true } },
+      select: {
+        id: true,
+        opponent: true,
+        date: true,
+        goalsFor: true,
+        goalsAgainst: true,
+        result: true,
+        youtubeUrl: true,
+        competition: {
+          select: {
+            id: true,
+            name: true,
+            season: {
+              select: {
+                id: true,
+                year: true,
+                tournament: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
-        photos: true,
-        competition: { include: { season: { include: { tournament: true } } } },
       },
       orderBy: { date: 'desc' },
     });
+
+    // Short public cache to reduce repeated reads and perceived latency.
+    res.set('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=120');
 
     res.json(matches);
   } catch (error) {

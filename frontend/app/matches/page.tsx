@@ -9,6 +9,9 @@ import MatchPhotosGallery from '@/components/MatchPhotosGallery';
 import MatchYoutubeVideo from '@/components/MatchYoutubeVideo';
 import MatchCompetitionFilter from '@/components/MatchCompetitionFilter';
 
+const MATCHES_CACHE_KEY = 'lamberpool:matches:list';
+const MATCHES_CACHE_TTL_MS = 60 * 1000;
+
 interface Match {
   id: string;
   opponent: string;
@@ -75,11 +78,31 @@ function MatchesContent() {
   const fetchMatches = async () => {
     try {
       setLoading(true);
+
+      const cached = sessionStorage.getItem(MATCHES_CACHE_KEY);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached) as { timestamp: number; data: Match[] };
+          const isFresh = Date.now() - parsed.timestamp < MATCHES_CACHE_TTL_MS;
+          if (isFresh) {
+            setMatches(parsed.data);
+            setError(null);
+            setLoading(false);
+            return;
+          }
+        } catch {
+          sessionStorage.removeItem(MATCHES_CACHE_KEY);
+        }
+      }
+
       const response = await matchesAPI.getAll();
-      setMatches(
-        response.data.sort(
-          (a: Match, b: Match) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )
+      setMatches(response.data);
+      sessionStorage.setItem(
+        MATCHES_CACHE_KEY,
+        JSON.stringify({
+          timestamp: Date.now(),
+          data: response.data,
+        })
       );
       setError(null);
     } catch (err) {
