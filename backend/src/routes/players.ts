@@ -11,18 +11,37 @@ router.get('/', async (req, res) => {
     const players = await prisma.player.findMany({
       where: teamId ? { teamId: teamId as string } : undefined,
       orderBy: { number: 'asc' },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        number: true,
+        teamId: true,
         matchPlayers: {
-          include: {
-            ratings: true,
-            guestRatings: true,
+          select: {
+            id: true,
+            goals: true,
+            cards: true,
+            position: true,
+            ratings: { select: { score: true } },
+            guestRatings: { select: { score: true } },
             match: {
-              include: {
+              select: {
+                id: true,
+                date: true,
                 competition: {
-                  include: {
+                  select: {
+                    id: true,
+                    name: true,
                     season: {
-                      include: {
-                        tournament: true,
+                      select: {
+                        id: true,
+                        year: true,
+                        tournament: {
+                          select: {
+                            id: true,
+                            name: true,
+                          },
+                        },
                       },
                     },
                   },
@@ -45,15 +64,40 @@ router.get('/:id', async (req, res) => {
   try {
     const player = await prisma.player.findUnique({
       where: { id: req.params.id },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        number: true,
+        teamId: true,
         matchPlayers: {
-          include: {
-            match: true,
+          select: {
+            id: true,
+            position: true,
+            goals: true,
+            cards: true,
+            match: {
+              select: {
+                id: true,
+                opponent: true,
+                date: true,
+                goalsFor: true,
+                goalsAgainst: true,
+                result: true,
+              },
+            },
             ratings: {
-              include: { judge: true },
+              select: {
+                id: true,
+                score: true,
+                judge: { select: { id: true, name: true } },
+              },
             },
             guestRatings: {
-              include: { guestJudge: true },
+              select: {
+                id: true,
+                score: true,
+                guestJudge: { select: { id: true, name: true } },
+              },
             },
           },
         },
@@ -136,6 +180,9 @@ router.delete('/:id', async (req, res) => {
       if (matchPlayers.length > 0) {
         const matchPlayerIds = matchPlayers.map((mp) => mp.id);
         await tx.rating.deleteMany({
+          where: { matchPlayerId: { in: matchPlayerIds } },
+        });
+        await tx.guestRating.deleteMany({
           where: { matchPlayerId: { in: matchPlayerIds } },
         });
         await tx.matchPlayer.deleteMany({

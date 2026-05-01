@@ -19,6 +19,7 @@ export const tournamentsAPI = {
   getAll: (teamId?: string) => apiClient.get('/tournaments', { params: teamId ? { teamId } : {} }),
   getActive: (teamId?: string) => apiClient.get('/tournaments/active', { params: teamId ? { teamId } : {} }),
   create: (data: any) => apiClient.post('/tournaments', data),
+  delete: (id: string) => apiClient.delete(`/tournaments/${id}`),
 };
 
 // Seasons endpoints
@@ -73,6 +74,7 @@ export const matchPlayersAPI = {
   getByMatch: (matchId: string) => apiClient.get(`/match-players/${matchId}`),
   add: (data: any) => apiClient.post('/match-players', data),
   update: (id: string, data: any) => apiClient.put(`/match-players/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/match-players/${id}`),
 };
 
 // Ratings endpoints

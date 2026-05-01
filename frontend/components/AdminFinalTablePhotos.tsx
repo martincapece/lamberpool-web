@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { seasonsAPI, competitionsAPI, tournamentsAPI } from '@/lib/api';
+import AdminFeedbackModal from './AdminFeedbackModal';
 
 interface Season {
   id: string;
@@ -24,6 +25,7 @@ export default function AdminFinalTablePhotos() {
   const [error, setError] = useState('');
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ title: string; message: string; tone: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -34,23 +36,23 @@ export default function AdminFinalTablePhotos() {
       setLoading(true);
       const tournamentsResponse = await tournamentsAPI.getAll();
 
-      const allSeasons: Season[] = [];
-      for (const tournament of tournamentsResponse.data) {
-        const seasonsResponse = await seasonsAPI.getAll(tournament.id);
-        const seasonsWithCompetitions = await Promise.all(
-          seasonsResponse.data.map(async (season: any) => {
-            const competitionsResponse = await competitionsAPI.getAll(season.id);
-            return {
-              ...season,
-              tournament,
-              competitions: competitionsResponse.data,
-            };
-          })
-        );
-        allSeasons.push(...seasonsWithCompetitions);
-      }
+      const seasonGroups = await Promise.all(
+        tournamentsResponse.data.map(async (tournament: any) => {
+          const seasonsResponse = await seasonsAPI.getAll(tournament.id);
+          return Promise.all(
+            seasonsResponse.data.map(async (season: any) => {
+              const competitionsResponse = await competitionsAPI.getAll(season.id);
+              return {
+                ...season,
+                tournament,
+                competitions: competitionsResponse.data,
+              };
+            })
+          );
+        })
+      );
 
-      setSeasons(allSeasons);
+      setSeasons(seasonGroups.flat());
       setError('');
     } catch (err) {
       console.error('Error loading data:', err);
@@ -69,10 +71,18 @@ export default function AdminFinalTablePhotos() {
       setDeletingId(competitionId);
       await competitionsAPI.deleteFinalTablePhoto(competitionId);
       await loadData();
-      alert(`✅ Foto de tabla final eliminada correctamente`);
+      setFeedback({
+        title: 'Foto eliminada',
+        message: 'La foto de tabla final se eliminó correctamente.',
+        tone: 'success',
+      });
     } catch (err: any) {
       console.error('Error deleting photo:', err);
-      alert(err.response?.data?.error || 'Error al eliminar la foto');
+      setFeedback({
+        title: 'No se pudo eliminar la foto',
+        message: err.response?.data?.error || 'Error al eliminar la foto',
+        tone: 'error',
+      });
     } finally {
       setDeletingId(null);
     }
@@ -88,7 +98,11 @@ export default function AdminFinalTablePhotos() {
 
     // Validar que sea una imagen
     if (!file.type.startsWith('image/')) {
-      alert('Por favor selecciona una imagen');
+      setFeedback({
+        title: 'Archivo invalido',
+        message: 'Por favor selecciona una imagen.',
+        tone: 'error',
+      });
       return;
     }
 
@@ -103,10 +117,18 @@ export default function AdminFinalTablePhotos() {
         try {
           await competitionsAPI.updateFinalTablePhoto(competitionId, base64);
           await loadData();
-          alert(`✅ Foto de tabla final para "${competitionName}" subida exitosamente`);
+          setFeedback({
+            title: 'Foto subida',
+            message: `La foto de tabla final para "${competitionName}" se subió correctamente.`,
+            tone: 'success',
+          });
         } catch (err: any) {
           console.error('Error uploading photo:', err);
-          alert(err.response?.data?.error || 'Error al subir la foto');
+          setFeedback({
+            title: 'No se pudo subir la foto',
+            message: err.response?.data?.error || 'Error al subir la foto',
+            tone: 'error',
+          });
         } finally {
           setUploadingId(null);
         }
@@ -114,7 +136,11 @@ export default function AdminFinalTablePhotos() {
       reader.readAsDataURL(file);
     } catch (err) {
       console.error('Error processing file:', err);
-      alert('Error al procesar la imagen');
+      setFeedback({
+        title: 'No se pudo procesar la imagen',
+        message: 'Error al procesar la imagen.',
+        tone: 'error',
+      });
       setUploadingId(null);
     }
   };
@@ -129,6 +155,14 @@ export default function AdminFinalTablePhotos() {
 
   return (
     <div className="bg-white rounded-lg shadow">
+      <AdminFeedbackModal
+        isOpen={Boolean(feedback)}
+        title={feedback?.title || ''}
+        message={feedback?.message || ''}
+        tone={feedback?.tone || 'info'}
+        onClose={() => setFeedback(null)}
+      />
+
       <div className="p-6 border-b border-gray-200">
         <h2 className="text-2xl font-bold text-gray-900">Fotos de Tabla Final</h2>
         <p className="text-sm text-gray-600 mt-1">

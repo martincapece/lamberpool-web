@@ -3,6 +3,71 @@ import { prisma } from '../lib/prisma';
 
 const router = Router();
 
+const parseMatchDate = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  // Store date-only values at UTC noon to avoid timezone shifts when users pick YYYY-MM-DD.
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+};
+
+const normalizeText = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const getMatchResult = (goalsFor: number, goalsAgainst: number) => {
+  if (goalsFor > goalsAgainst) return 'W';
+  if (goalsFor < goalsAgainst) return 'L';
+  return 'D';
+};
+
+const buildMatchPayload = (source: any, fallback?: any) => {
+  const status = source.status ?? fallback?.status ?? 'PLAYED';
+  const awardedTo = normalizeText(source.awardedTo) ?? (status === 'CANCELED' ? fallback?.awardedTo : undefined);
+  const cancelReason = status === 'CANCELED' ? normalizeText(source.cancelReason) ?? fallback?.cancelReason ?? null : null;
+  const opponent = normalizeText(source.opponent) ?? fallback?.opponent;
+  const rawDate = source.date ?? fallback?.date;
+  const parsedDate = typeof rawDate === 'string' ? parseMatchDate(rawDate) : rawDate instanceof Date ? rawDate : null;
+
+  if (!opponent || !parsedDate) {
+    return { error: 'Missing required fields' };
+  }
+
+  let goalsFor = source.goalsFor ?? fallback?.goalsFor ?? 0;
+  let goalsAgainst = source.goalsAgainst ?? fallback?.goalsAgainst ?? 0;
+
+  if (status === 'CANCELED') {
+    if (awardedTo !== 'LAMBERPOOL' && awardedTo !== 'OPPONENT') {
+      return { error: 'awardedTo must be LAMBERPOOL or OPPONENT when the match is canceled' };
+    }
+
+    goalsFor = awardedTo === 'LAMBERPOOL' ? 3 : 0;
+    goalsAgainst = awardedTo === 'LAMBERPOOL' ? 0 : 3;
+  }
+
+  return {
+    data: {
+      opponent,
+      date: parsedDate,
+      goalsFor: Number(goalsFor),
+      goalsAgainst: Number(goalsAgainst),
+      result: getMatchResult(Number(goalsFor), Number(goalsAgainst)),
+      status,
+      awardedTo: status === 'CANCELED' ? awardedTo : null,
+      cancelReason,
+      youtubeUrl: source.youtubeUrl !== undefined ? normalizeText(source.youtubeUrl) ?? null : fallback?.youtubeUrl,
+    },
+  };
+};
+
 // GET all matches
 router.get('/', async (req, res) => {
   try {
@@ -20,6 +85,9 @@ router.get('/', async (req, res) => {
         goalsFor: true,
         goalsAgainst: true,
         result: true,
+        status: true,
+        awardedTo: true,
+        cancelReason: true,
         youtubeUrl: true,
         competition: {
           select: {
@@ -89,18 +157,16 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const result =
-      goalsFor > goalsAgainst ? 'W' : goalsFor < goalsAgainst ? 'L' : 'D';
+    const payload = buildMatchPayload(req.body);
+    if ('error' in payload) {
+      return res.status(400).json({ error: payload.error });
+    }
 
     const match = await prisma.match.create({
       data: {
         competitionId,
         teamId,
-        opponent,
-        date: new Date(date),
-        goalsFor,
-        goalsAgainst,
-        result,
+        ...payload.data,
       },
       include: {
         matchPlayers: { 
@@ -123,21 +189,22 @@ router.post('/', async (req, res) => {
 // PUT update match
 router.put('/:id', async (req, res) => {
   try {
-    const { opponent, date, goalsFor, goalsAgainst, youtubeUrl } = req.body;
+    const existingMatch = await prisma.match.findUnique({
+      where: { id: req.params.id },
+    });
 
-    const result =
-      goalsFor > goalsAgainst ? 'W' : goalsFor < goalsAgainst ? 'L' : 'D';
+    if (!existingMatch) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    const payload = buildMatchPayload(req.body, existingMatch);
+    if ('error' in payload) {
+      return res.status(400).json({ error: payload.error });
+    }
 
     const match = await prisma.match.update({
       where: { id: req.params.id },
-      data: {
-        opponent,
-        date: date ? new Date(date) : undefined,
-        goalsFor,
-        goalsAgainst,
-        result,
-        youtubeUrl: youtubeUrl || null,
-      },
+      data: payload.data,
       include: {
         matchPlayers: {
           include: {
@@ -171,10 +238,17 @@ router.delete('/:id', async (req, res) => {
         await tx.rating.deleteMany({
           where: { matchPlayerId: { in: matchPlayerIds } },
         });
+        await tx.guestRating.deleteMany({
+          where: { matchPlayerId: { in: matchPlayerIds } },
+        });
         await tx.matchPlayer.deleteMany({
           where: { id: { in: matchPlayerIds } },
         });
       }
+
+      await tx.guestJudge.deleteMany({
+        where: { matchId },
+      });
 
       await tx.photo.deleteMany({
         where: { matchId },
@@ -221,10 +295,17 @@ router.delete('/', async (req, res) => {
         await tx.rating.deleteMany({
           where: { matchPlayerId: { in: matchPlayerIds } },
         });
+        await tx.guestRating.deleteMany({
+          where: { matchPlayerId: { in: matchPlayerIds } },
+        });
         await tx.matchPlayer.deleteMany({
           where: { id: { in: matchPlayerIds } },
         });
       }
+
+      await tx.guestJudge.deleteMany({
+        where: { matchId: { in: matchIds } },
+      });
 
       await tx.photo.deleteMany({
         where: { matchId: { in: matchIds } },

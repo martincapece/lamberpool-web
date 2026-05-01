@@ -115,4 +115,20 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// DELETE match player from a match
+router.delete('/:id', async (req, res) => {
+  try {
+    await prisma.matchPlayer.delete({
+      where: { id: req.params.id },
+    });
+
+    res.json({ message: 'Match player deleted successfully' });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Match player not found' });
+    }
+    res.status(500).json({ error: 'Failed to delete match player' });
+  }
+});
+
 export default router;

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { tournamentsAPI, seasonsAPI, competitionsAPI, teamAPI } from '@/lib/api';
+import AdminFeedbackModal from './AdminFeedbackModal';
 
 interface Tournament {
   id: string;
@@ -43,6 +44,7 @@ export default function AdminTournamentForm() {
   const [loadingCompetitions, setLoadingCompetitions] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [feedback, setFeedback] = useState<{ title: string; message: string; tone: 'success' | 'error' } | null>(null);
 
   // Load team and tournaments on mount
   useEffect(() => {
@@ -141,6 +143,40 @@ export default function AdminTournamentForm() {
     }
   };
 
+  const handleDeleteTournament = async (id: string, name: string) => {
+    if (!confirm(`¿Eliminar el torneo "${name}"? Se borrarán también sus temporadas, competencias y partidos.`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      setSuccess('');
+      await tournamentsAPI.delete(id);
+      const tournamentsRes = await tournamentsAPI.getAll(teamId);
+      setTournaments(tournamentsRes.data);
+      if (seasonForm.tournamentId === id) {
+        setSeasonForm({ tournamentId: '', year: new Date().getFullYear() });
+        setCompetitionForm({ seasonId: '', name: '' });
+        setSeasons([]);
+        setCompetitions([]);
+      }
+      setFeedback({
+        title: 'Torneo eliminado',
+        message: `El torneo "${name}" se eliminó correctamente.`,
+        tone: 'success',
+      });
+    } catch (err: any) {
+      setFeedback({
+        title: 'No se pudo eliminar el torneo',
+        message: err.response?.data?.error || 'Error al eliminar el torneo',
+        tone: 'error',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCreateSeason = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -209,6 +245,14 @@ export default function AdminTournamentForm() {
 
   return (
     <div className="space-y-8">
+      <AdminFeedbackModal
+        isOpen={Boolean(feedback)}
+        title={feedback?.title || ''}
+        message={feedback?.message || ''}
+        tone={feedback?.tone || 'info'}
+        onClose={() => setFeedback(null)}
+      />
+
       <h3 className="text-lg font-semibold">Gestionar Torneos</h3>
 
       {error && <div className="p-3 bg-red-100 text-red-700 rounded">{error}</div>}
@@ -243,8 +287,15 @@ export default function AdminTournamentForm() {
           ) : (
             <ul className="space-y-1">
               {tournaments.map(t => (
-                <li key={t.id} className="text-sm bg-white p-2 rounded border">
-                  {t.name}
+                <li key={t.id} className="flex items-center justify-between gap-3 rounded border bg-white p-2 text-sm">
+                  <span>{t.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTournament(t.id, t.name)}
+                    className="rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700"
+                  >
+                    Eliminar
+                  </button>
                 </li>
               ))}
             </ul>

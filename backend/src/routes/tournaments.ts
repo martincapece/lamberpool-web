@@ -10,15 +10,10 @@ router.get('/', async (req, res) => {
 
     const tournaments = await prisma.tournament.findMany({
       where: teamId && teamId !== 'undefined' ? { teamId: teamId as string } : {},
-      include: {
-        seasons: {
-          include: {
-            competitions: {
-              include: { matches: { orderBy: { date: 'desc' } } },
-            },
-          },
-          orderBy: { year: 'desc' },
-        },
+      select: {
+        id: true,
+        name: true,
+        teamId: true,
       },
       orderBy: { name: 'asc' },
     });
@@ -37,15 +32,10 @@ router.get('/active', async (req, res) => {
 
     const tournament = await prisma.tournament.findFirst({
       where: teamId && teamId !== 'undefined' ? { teamId: teamId as string } : {},
-      include: {
-        seasons: {
-          include: {
-            competitions: {
-              include: { matches: { orderBy: { date: 'desc' } } },
-            },
-          },
-          orderBy: { year: 'desc' },
-        },
+      select: {
+        id: true,
+        name: true,
+        teamId: true,
       },
     });
 
@@ -85,11 +75,27 @@ router.post('/', async (req, res) => {
       },
     });
 
-    console.log('Tournament created:', tournament);
     res.status(201).json(tournament);
   } catch (error: any) {
-    console.error('Error creating tournament:', error);
     res.status(500).json({ error: 'Failed to create tournament', details: error.message });
+  }
+});
+
+// DELETE tournament
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.tournament.delete({
+      where: { id },
+    });
+
+    res.json({ message: 'Tournament deleted successfully', deletedTournamentId: id });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Tournament not found' });
+    }
+    res.status(500).json({ error: 'Failed to delete tournament' });
   }
 });
 

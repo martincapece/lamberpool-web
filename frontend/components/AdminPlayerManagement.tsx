@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { playersAPI, teamAPI, ratingsAPI } from '@/lib/api';
+import AdminFeedbackModal from './AdminFeedbackModal';
 
 interface Player {
   id: string;
@@ -157,13 +158,21 @@ export default function AdminPlayerManagement() {
 
   return (
     <div className="space-y-6">
+      <AdminFeedbackModal
+        isOpen={Boolean(error || success)}
+        title={error ? 'Operacion fallida' : 'Operacion exitosa'}
+        message={error || success}
+        tone={error ? 'error' : 'success'}
+        onClose={() => {
+          setError('');
+          setSuccess('');
+        }}
+      />
+
       <div>
         <h3 className="text-lg font-semibold mb-4">
           {editingId ? 'Editar Jugador' : 'Agregar Jugador'}
         </h3>
-
-        {error && <div className="p-3 bg-red-100 text-red-700 rounded mb-4">{error}</div>}
-        {success && <div className="p-3 bg-green-100 text-green-700 rounded mb-4">{success}</div>}
 
         <form onSubmit={handleAddOrUpdate} className="space-y-4 max-w-md">
           <div>

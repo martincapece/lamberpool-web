@@ -10,6 +10,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum MatchStatus {
+  PLAYED
+  CANCELED
+}
+
 // Team model
 model Team {
   id        String   @id @default(cuid())
@@ -126,6 +131,9 @@ model Match {
   goalsFor        Int
   goalsAgainst    Int
   result          String   // "W", "D", "L"
+  status          MatchStatus @default(PLAYED)
+  awardedTo       String?
+  cancelReason    String?
   youtubeUrl      String?  // Link del video del partido
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { matchesAPI, matchPlayersAPI, ratingsAPI, judgesAPI, teamAPI, guestJudgesAPI, guestRatingsAPI, photosAPI } from '@/lib/api';
 import PhotoUpload from './PhotoUpload';
+import AdminFeedbackModal from './AdminFeedbackModal';
 
 interface Judge {
   id: string;
@@ -34,6 +35,7 @@ interface Match {
   date: string;
   goalsFor: number;
   goalsAgainst: number;
+  status?: 'PLAYED' | 'CANCELED';
 }
 
 export default function AdminRatingForm() {
@@ -69,11 +71,12 @@ export default function AdminRatingForm() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const judgesRes = await judgesAPI.getAll();
-        setJudges(judgesRes.data);
-
         const teamRes = await teamAPI.getTeam();
-        const matchesRes = await matchesAPI.getAll(undefined, teamRes.data.id);
+        const [judgesRes, matchesRes] = await Promise.all([
+          judgesAPI.getAll(),
+          matchesAPI.getAll(undefined, teamRes.data.id),
+        ]);
+        setJudges(judgesRes.data);
         setMatches(matchesRes.data);
       } catch (err) {
         setError('Error al cargar los datos');
@@ -87,15 +90,13 @@ export default function AdminRatingForm() {
     if (selectedMatch) {
       const loadMatchPlayers = async () => {
         try {
-          const response = await matchPlayersAPI.getByMatch(selectedMatch);
-          setMatchPlayers(response.data);
-          
-          // Load guest judges for this match
-          const guestJudgesRes = await guestJudgesAPI.getByMatch(selectedMatch);
+          const [matchPlayersRes, guestJudgesRes, photosRes] = await Promise.all([
+            matchPlayersAPI.getByMatch(selectedMatch),
+            guestJudgesAPI.getByMatch(selectedMatch),
+            photosAPI.getByMatch(selectedMatch),
+          ]);
+          setMatchPlayers(matchPlayersRes.data);
           setGuestJudges(guestJudgesRes.data);
-          
-          // Load photos for this match
-          const photosRes = await photosAPI.getByMatch(selectedMatch);
           setPhotos(photosRes.data || []);
           
           setSelectedPlayer('');
@@ -347,10 +348,18 @@ export default function AdminRatingForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <h3 className="text-lg font-semibold">Valoraciones de Jueces</h3>
+      <AdminFeedbackModal
+        isOpen={Boolean(error || success)}
+        title={error ? 'Operacion fallida' : 'Operacion exitosa'}
+        message={error || success}
+        tone={error ? 'error' : 'success'}
+        onClose={() => {
+          setError('');
+          setSuccess('');
+        }}
+      />
 
-      {error && <div className="p-3 bg-red-100 text-red-700 rounded">{error}</div>}
-      {success && <div className="p-3 bg-green-100 text-green-700 rounded">{success}</div>}
+      <h3 className="text-lg font-semibold">Valoraciones de Jueces</h3>
 
       <div>
         <label className="block text-sm font-medium mb-1">Selecciona Partido</label>
@@ -363,7 +372,7 @@ export default function AdminRatingForm() {
           <option value="">Elige un partido</option>
           {matches.map(m => (
             <option key={m.id} value={m.id}>
-              {m.opponent} - {m.date} ({m.goalsFor}-{m.goalsAgainst})
+              {m.opponent} - {m.date} ({m.goalsFor}-{m.goalsAgainst}){m.status === 'CANCELED' ? ' - Cancelado' : ''}
             </option>
           ))}
         </select>

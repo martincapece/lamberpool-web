@@ -25,6 +25,9 @@ interface Match {
   date: string;
   goalsFor: number;
   goalsAgainst: number;
+  status?: 'PLAYED' | 'CANCELED';
+  awardedTo?: 'LAMBERPOOL' | 'OPPONENT' | null;
+  cancelReason?: string | null;
 }
 
 interface Props {
@@ -149,9 +152,22 @@ export default function MatchLineupViewer({ matchId: propMatchId }: Props) {
           {player.player.number}
         </div>
         <p className="font-semibold text-[10px] md:text-xs text-center leading-tight">{player.player.name}</p>
-        <span className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-bold ${ratingTone(rating ?? 0)}`}>
-          {rating === null ? 'S/N' : rating.toFixed(1)}
-        </span>
+        <div className="flex flex-wrap items-center justify-center gap-1">
+          <span className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-bold ${ratingTone(rating ?? 0)}`}>
+            {rating === null ? 'S/N' : rating.toFixed(1)}
+          </span>
+          {player.goals > 0 && (
+            <span className="inline-flex items-center justify-center gap-0.5 rounded-full bg-green-500 px-1.5 py-0.5 text-[10px] font-bold text-white md:px-2 md:py-1 md:text-xs">
+              <span>⚽</span>
+              <span>{player.goals}</span>
+            </span>
+          )}
+          {player.cards && (
+            <span className="rounded-full bg-yellow-400 px-1.5 py-0.5 text-[10px] text-gray-900 md:px-2 md:py-1 md:text-xs">
+              {formatCardsBadge(player.cards)}
+            </span>
+          )}
+        </div>
       </div>
     );
   };
@@ -195,6 +211,14 @@ export default function MatchLineupViewer({ matchId: propMatchId }: Props) {
             <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white p-4 md:p-6 rounded-lg shadow-lg">
               <h2 className="text-xl md:text-3xl font-bold">Lamberpool FC vs {selectedMatchData.opponent}</h2>
               <p className="text-xs md:text-sm text-blue-100 mt-1">{new Date(selectedMatchData.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              {selectedMatchData.status === 'CANCELED' && (
+                <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-amber-200 md:text-sm">
+                  Partido cancelado {selectedMatchData.awardedTo ? `• Ganador por cancelacion: ${selectedMatchData.awardedTo === 'LAMBERPOOL' ? 'Lamberpool FC' : selectedMatchData.opponent}` : ''}
+                </p>
+              )}
+              {selectedMatchData.status === 'CANCELED' && selectedMatchData.cancelReason && (
+                <p className="mt-1 text-xs text-blue-100 md:text-sm">{selectedMatchData.cancelReason}</p>
+              )}
               <p className="text-3xl md:text-4xl font-bold mt-3">
                 {selectedMatchData.goalsFor} - {selectedMatchData.goalsAgainst}
               </p>

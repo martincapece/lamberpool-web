@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   competitionsAPI,
   matchesAPI,
@@ -10,6 +10,7 @@ import {
   playersAPI,
   matchPlayersAPI,
 } from '@/lib/api';
+import AdminFeedbackModal from './AdminFeedbackModal';
 
 interface Tournament {
   id: string;
@@ -26,11 +27,37 @@ interface Competition {
   name: string;
 }
 
+interface Player {
+  id: string;
+  name: string;
+  number: number;
+}
+
+interface Match {
+  id: string;
+  opponent: string;
+  date: string;
+  goalsFor: number;
+  goalsAgainst: number;
+  status?: 'PLAYED' | 'CANCELED';
+}
+
 type FormationKey = '2-4-1' | '3-3-1';
+type MatchStatus = 'PLAYED' | 'CANCELED';
 
 interface FormationSlot {
   id: string;
   label: string;
+}
+
+interface MatchFormState {
+  opponent: string;
+  date: string;
+  goalsFor: string;
+  goalsAgainst: string;
+  status: MatchStatus;
+  awardedTo: 'LAMBERPOOL' | 'OPPONENT';
+  cancelReason: string;
 }
 
 const formationSlotsMap: Record<FormationKey, FormationSlot[]> = {
@@ -56,11 +83,20 @@ const formationSlotsMap: Record<FormationKey, FormationSlot[]> = {
   ],
 };
 
-interface Player {
-  id: string;
-  name: string;
-  number: number;
-}
+const createEmptyForm = (): MatchFormState => ({
+  opponent: '',
+  date: '',
+  goalsFor: '',
+  goalsAgainst: '',
+  status: 'PLAYED',
+  awardedTo: 'LAMBERPOOL',
+  cancelReason: '',
+});
+
+const applyCanceledScore = (awardedTo: 'LAMBERPOOL' | 'OPPONENT') => ({
+  goalsFor: awardedTo === 'LAMBERPOOL' ? '3' : '0',
+  goalsAgainst: awardedTo === 'LAMBERPOOL' ? '0' : '3',
+});
 
 export default function AdminMatchForm() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -68,105 +104,94 @@ export default function AdminMatchForm() {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [teamId, setTeamId] = useState('');
-  const [existingMatches, setExistingMatches] = useState<any[]>([]);
+  const [existingMatches, setExistingMatches] = useState<Match[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
-  
   const [selectedTournament, setSelectedTournament] = useState('');
   const [selectedSeason, setSelectedSeason] = useState('');
   const [selectedCompetition, setSelectedCompetition] = useState('');
-  
   const [competitionForm, setCompetitionForm] = useState({
     seasonId: '',
     name: '',
   });
-
   const [formationKey, setFormationKey] = useState<FormationKey>('2-4-1');
   const [selectedParticipants, setSelectedParticipants] = useState<Record<string, boolean>>({});
   const [slotAssignments, setSlotAssignments] = useState<Record<string, string>>({});
-
-  const [formData, setFormData] = useState({
-    opponent: '',
-    date: '',
-    goalsFor: '',
-    goalsAgainst: '',
-  });
-
+  const [formData, setFormData] = useState<MatchFormState>(createEmptyForm());
   const [loading, setLoading] = useState(false);
   const [loadingCompetitions, setLoadingCompetitions] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [feedback, setFeedback] = useState<{ title: string; message: string; tone: 'success' | 'error' } | null>(null);
 
-  // Load tournaments
   useEffect(() => {
-    const loadTournaments = async () => {
+    const loadInitialData = async () => {
       try {
-        console.log('Cargando datos iniciales...');
-        const teamRes = await teamAPI.getTeam();
-        setTeamId(teamRes.data.id);
-        console.log('Team cargado:', teamRes.data.id);
+        const teamResponse = await teamAPI.getTeam();
+        setTeamId(teamResponse.data.id);
 
-        const tournamentsRes = await tournamentsAPI.getAll(teamRes.data.id);
-        console.log('Torneos cargados:', tournamentsRes.data);
-        setTournaments(tournamentsRes.data);
+        const [tournamentsResponse, playersResponse] = await Promise.all([
+          tournamentsAPI.getAll(teamResponse.data.id),
+          playersAPI.getAll(teamResponse.data.id),
+        ]);
 
-        const playersRes = await playersAPI.getAll(teamRes.data.id);
-        console.log('Jugadores cargados:', playersRes.data);
-        setPlayers(playersRes.data);
+        setTournaments(tournamentsResponse.data);
+        setPlayers(playersResponse.data);
       } catch (err: any) {
-        console.error('Error cargando torneos:', err);
-        setError('Error al cargar los torneos');
+        console.error('Error cargando datos iniciales:', err);
+        setError('Error al cargar los torneos y jugadores');
       }
     };
-    loadTournaments();
+
+    loadInitialData();
   }, []);
 
-  // Load seasons when tournament changes
   useEffect(() => {
-    if (selectedTournament) {
-      const loadSeasons = async () => {
-        try {
-          console.log('Cargando temporadas para torneo:', selectedTournament);
-          const seasonsRes = await seasonsAPI.getAll(selectedTournament);
-          console.log('Temporadas cargadas:', seasonsRes.data);
-          setSeasons(seasonsRes.data);
-          setSelectedSeason('');
-          setCompetitions([]);
-          setSelectedCompetition('');
-          setCompetitionForm({ seasonId: '', name: '' });
-          setSelectedParticipants({});
-          setSlotAssignments({});
-        } catch (err: any) {
-          console.error('Error cargando temporadas:', err);
-          setError('Error al cargar las temporadas');
-        }
-      };
-      loadSeasons();
+    if (!selectedTournament) {
+      setSeasons([]);
+      setSelectedSeason('');
+      setCompetitions([]);
+      setSelectedCompetition('');
+      return;
     }
+
+    const loadSeasons = async () => {
+      try {
+        const seasonsResponse = await seasonsAPI.getAll(selectedTournament);
+        setSeasons(seasonsResponse.data);
+        setSelectedSeason('');
+        setCompetitions([]);
+        setSelectedCompetition('');
+      } catch (err) {
+        console.error(err);
+        setError('Error al cargar las temporadas');
+      }
+    };
+
+    loadSeasons();
   }, [selectedTournament]);
 
-  // Load competitions when season changes
   useEffect(() => {
-    if (selectedSeason) {
-      const loadCompetitions = async () => {
-        try {
-          setLoadingCompetitions(true);
-          console.log('Cargando competiciones para temporada:', selectedSeason);
-          const competitionsRes = await competitionsAPI.getAll(selectedSeason);
-          console.log('Competiciones cargadas:', competitionsRes.data);
-          setCompetitions(competitionsRes.data);
-          setSelectedCompetition('');
-          setCompetitionForm({ seasonId: selectedSeason, name: '' });
-          setSelectedParticipants({});
-          setSlotAssignments({});
-        } catch (err: any) {
-          console.error('Error cargando competiciones:', err);
-          setError('Error al cargar las competiciones');
-        } finally {
-          setLoadingCompetitions(false);
-        }
-      };
-      loadCompetitions();
+    if (!selectedSeason) {
+      setCompetitions([]);
+      setSelectedCompetition('');
+      return;
     }
+
+    const loadCompetitions = async () => {
+      try {
+        setLoadingCompetitions(true);
+        const competitionsResponse = await competitionsAPI.getAll(selectedSeason);
+        setCompetitions(competitionsResponse.data);
+        setSelectedCompetition('');
+        setCompetitionForm({ seasonId: selectedSeason, name: '' });
+      } catch (err) {
+        console.error(err);
+        setError('Error al cargar las competiciones');
+      } finally {
+        setLoadingCompetitions(false);
+      }
+    };
+
+    loadCompetitions();
   }, [selectedSeason]);
 
   useEffect(() => {
@@ -178,10 +203,10 @@ export default function AdminMatchForm() {
     const loadMatches = async () => {
       try {
         setLoadingMatches(true);
-        const matchesRes = await matchesAPI.getAll(selectedCompetition, teamId);
-        setExistingMatches(matchesRes.data);
-      } catch (err: any) {
-        console.error('Error cargando partidos:', err);
+        const matchesResponse = await matchesAPI.getAll(selectedCompetition, teamId);
+        setExistingMatches(matchesResponse.data);
+      } catch (err) {
+        console.error(err);
         setError('Error al cargar los partidos');
       } finally {
         setLoadingMatches(false);
@@ -191,60 +216,58 @@ export default function AdminMatchForm() {
     loadMatches();
   }, [selectedCompetition, teamId]);
 
-  const handleCreateCompetition = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!competitionForm.seasonId || !competitionForm.name) {
-      setError('La temporada y nombre de competición son requeridos');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      console.log('Creando competición:', competitionForm);
-      await competitionsAPI.create({
-        seasonId: competitionForm.seasonId,
-        name: competitionForm.name,
-      });
-
-      setSuccess('¡Competición creada exitosamente!');
-      
-      // Reload competitions
-      const competitionsRes = await competitionsAPI.getAll(competitionForm.seasonId);
-      console.log('Competiciones actualizadas:', competitionsRes.data);
-      setCompetitions(competitionsRes.data);
-      setCompetitionForm({ seasonId: competitionForm.seasonId, name: '' });
-    } catch (err: any) {
-      console.error('Error creando competición:', err);
-      setError(err.response?.data?.error || 'Error al crear la competición');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const slots = formationSlotsMap[formationKey];
   const assignedIds = new Set(Object.values(slotAssignments).filter(Boolean));
+  const isCanceledMatch = formData.status === 'CANCELED';
+
+  const selectedPlayers = useMemo(
+    () => players.filter((player) => selectedParticipants[player.id]),
+    [players, selectedParticipants]
+  );
+
+  const updateFormData = (field: keyof MatchFormState, value: string) => {
+    setFormData((previous) => {
+      const nextState = {
+        ...previous,
+        [field]: value,
+      } as MatchFormState;
+
+      if (field === 'status' && value === 'CANCELED') {
+        return {
+          ...nextState,
+          ...applyCanceledScore(nextState.awardedTo),
+        };
+      }
+
+      if (field === 'awardedTo' && nextState.status === 'CANCELED') {
+        return {
+          ...nextState,
+          ...applyCanceledScore(value as 'LAMBERPOOL' | 'OPPONENT'),
+        };
+      }
+
+      if (field === 'status' && value === 'PLAYED') {
+        return {
+          ...nextState,
+          goalsFor: previous.goalsFor === '3' || previous.goalsFor === '0' ? '' : previous.goalsFor,
+          goalsAgainst: previous.goalsAgainst === '3' || previous.goalsAgainst === '0' ? '' : previous.goalsAgainst,
+          cancelReason: '',
+        };
+      }
+
+      return nextState;
+    });
+  };
 
   const toggleParticipant = (playerId: string) => {
-    setSelectedParticipants((prev) => ({
-      ...prev,
-      [playerId]: !prev[playerId],
+    setSelectedParticipants((previous) => ({
+      ...previous,
+      [playerId]: !previous[playerId],
     }));
   };
 
   const handleAssign = (slotId: string, playerId: string) => {
-    setSlotAssignments((prev) => ({ ...prev, [slotId]: playerId }));
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setSlotAssignments((previous) => ({ ...previous, [slotId]: playerId }));
   };
 
   const handleDeleteMatch = async (matchId: string) => {
@@ -252,18 +275,23 @@ export default function AdminMatchForm() {
       return;
     }
 
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
     try {
+      setLoading(true);
       await matchesAPI.delete(matchId);
-      setSuccess('Partido eliminado exitosamente');
-      const matchesRes = await matchesAPI.getAll(selectedCompetition, teamId);
-      setExistingMatches(matchesRes.data);
+      const matchesResponse = await matchesAPI.getAll(selectedCompetition, teamId);
+      setExistingMatches(matchesResponse.data);
+      setFeedback({
+        title: 'Partido eliminado',
+        message: 'El partido se eliminó correctamente.',
+        tone: 'success',
+      });
     } catch (err: any) {
-      console.error('Error eliminando partido:', err);
-      setError(err.response?.data?.error || 'Error al eliminar el partido');
+      console.error(err);
+      setFeedback({
+        title: 'No se pudo eliminar el partido',
+        message: err.response?.data?.error || 'Error al eliminar el partido',
+        tone: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -278,97 +306,188 @@ export default function AdminMatchForm() {
       return;
     }
 
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
     try {
+      setLoading(true);
       const response = await matchesAPI.deleteAll(selectedCompetition);
-      setSuccess(`Partidos eliminados: ${response.data.deleted}`);
       setExistingMatches([]);
+      setFeedback({
+        title: 'Partidos eliminados',
+        message: `Se eliminaron ${response.data.deleted} partido(s) de la competencia seleccionada.`,
+        tone: 'success',
+      });
     } catch (err: any) {
-      console.error('Error eliminando partidos:', err);
-      setError(err.response?.data?.error || 'Error al eliminar los partidos');
+      console.error(err);
+      setFeedback({
+        title: 'No se pudieron eliminar los partidos',
+        message: err.response?.data?.error || 'Error al eliminar los partidos',
+        tone: 'error',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedCompetition) {
-      setError('Selecciona una competición');
+  const handleCreateCompetition = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!competitionForm.seasonId || !competitionForm.name) {
+      setFeedback({
+        title: 'Faltan datos de la competencia',
+        message: 'La temporada y el nombre de la competencia son obligatorios.',
+        tone: 'error',
+      });
       return;
     }
-
-    if (!formData.opponent || !formData.date || !formData.goalsFor || !formData.goalsAgainst) {
-      setError('Completa todos los campos del partido');
-      return;
-    }
-
-    const participantIds = Object.entries(selectedParticipants)
-      .filter(([_, selected]) => selected)
-      .map(([playerId]) => playerId);
-    if (participantIds.length === 0) {
-      setError('Selecciona al menos un jugador que participo del partido');
-      return;
-    }
-
-    if (participantIds.length < slots.length) {
-      setError('Debes seleccionar al menos 8 jugadores (arquero + 7 de campo)');
-      return;
-    }
-
-    const missingSlot = slots.find((slot) => !slotAssignments[slot.id]);
-    if (missingSlot) {
-      setError(`Completa la alineacion: falta ${missingSlot.label}`);
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
 
     try {
-      console.log('Creando partido:', { competitionId: selectedCompetition, teamId, ...formData });
-      const matchRes = await matchesAPI.create({
+      setLoading(true);
+      await competitionsAPI.create({
+        seasonId: competitionForm.seasonId,
+        name: competitionForm.name,
+      });
+      const competitionsResponse = await competitionsAPI.getAll(competitionForm.seasonId);
+      setCompetitions(competitionsResponse.data);
+      setCompetitionForm({ seasonId: competitionForm.seasonId, name: '' });
+      setFeedback({
+        title: 'Competencia creada',
+        message: 'La competencia se creó correctamente y ya está disponible para cargar partidos.',
+        tone: 'success',
+      });
+    } catch (err: any) {
+      console.error(err);
+      setFeedback({
+        title: 'No se pudo crear la competencia',
+        message: err.response?.data?.error || 'Error al crear la competencia',
+        tone: 'error',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!selectedCompetition) {
+      setFeedback({
+        title: 'Falta la competencia',
+        message: 'Selecciona una competencia antes de crear el partido.',
+        tone: 'error',
+      });
+      return;
+    }
+
+    if (!formData.opponent.trim() || !formData.date) {
+      setFeedback({
+        title: 'Faltan datos del partido',
+        message: 'Debes completar rival y fecha.',
+        tone: 'error',
+      });
+      return;
+    }
+
+    if (!isCanceledMatch && (!formData.goalsFor || !formData.goalsAgainst)) {
+      setFeedback({
+        title: 'Falta el resultado',
+        message: 'Completa goles a favor y en contra.',
+        tone: 'error',
+      });
+      return;
+    }
+
+    if (!isCanceledMatch) {
+      const participantIds = Object.entries(selectedParticipants)
+        .filter(([, selected]) => selected)
+        .map(([playerId]) => playerId);
+
+      if (participantIds.length === 0) {
+        setFeedback({
+          title: 'Faltan jugadores convocados',
+          message: 'Selecciona al menos un jugador que haya participado del partido.',
+          tone: 'error',
+        });
+        return;
+      }
+
+      if (participantIds.length < slots.length) {
+        setFeedback({
+          title: 'Faltan jugadores titulares',
+          message: 'Debes seleccionar al menos ocho jugadores para completar la formacion.',
+          tone: 'error',
+        });
+        return;
+      }
+
+      const missingSlot = slots.find((slot) => !slotAssignments[slot.id]);
+      if (missingSlot) {
+        setFeedback({
+          title: 'Formacion incompleta',
+          message: `Completa la alineacion. Falta asignar ${missingSlot.label}.`,
+          tone: 'error',
+        });
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+      const matchResponse = await matchesAPI.create({
         competitionId: selectedCompetition,
         teamId,
         opponent: formData.opponent,
         date: formData.date,
-        goalsFor: parseInt(formData.goalsFor),
-        goalsAgainst: parseInt(formData.goalsAgainst),
+        goalsFor: parseInt(formData.goalsFor || '0', 10),
+        goalsAgainst: parseInt(formData.goalsAgainst || '0', 10),
+        status: formData.status,
+        awardedTo: isCanceledMatch ? formData.awardedTo : undefined,
+        cancelReason: isCanceledMatch ? formData.cancelReason : undefined,
       });
 
-      const matchId = matchRes.data.id;
-      const assignedPlayerIds = Object.values(slotAssignments);
-      const benchIds = participantIds.filter((playerId) => !assignedPlayerIds.includes(playerId));
+      if (!isCanceledMatch) {
+        const matchId = matchResponse.data.id;
+        const participantIds = Object.entries(selectedParticipants)
+          .filter(([, selected]) => selected)
+          .map(([playerId]) => playerId);
+        const assignedPlayerIds = Object.values(slotAssignments);
+        const benchIds = participantIds.filter((playerId) => !assignedPlayerIds.includes(playerId));
 
-      await Promise.all([
-        ...Object.entries(slotAssignments).map(([slotId, playerId]) =>
-          matchPlayersAPI.add({
-            matchId,
-            playerId,
-            position: slotId,
-          })
-        ),
-        ...benchIds.map((playerId) =>
-          matchPlayersAPI.add({
-            matchId,
-            playerId,
-            position: 'BENCH',
-          })
-        ),
-      ]);
+        await Promise.all([
+          ...Object.entries(slotAssignments).map(([slotId, playerId]) =>
+            matchPlayersAPI.add({
+              matchId,
+              playerId,
+              position: slotId,
+            })
+          ),
+          ...benchIds.map((playerId) =>
+            matchPlayersAPI.add({
+              matchId,
+              playerId,
+              position: 'BENCH',
+            })
+          ),
+        ]);
+      }
 
-      setSuccess('¡Partido creado exitosamente!');
-      setFormData({ opponent: '', date: '', goalsFor: '', goalsAgainst: '' });
+      const matchesResponse = await matchesAPI.getAll(selectedCompetition, teamId);
+      setExistingMatches(matchesResponse.data);
+      setFormData(createEmptyForm());
       setSelectedParticipants({});
       setSlotAssignments({});
+      setFeedback({
+        title: 'Partido creado',
+        message: isCanceledMatch
+          ? 'El partido cancelado se registró correctamente con resultado 3-0 automático.'
+          : 'El partido y su plantilla se crearon correctamente.',
+        tone: 'success',
+      });
     } catch (err: any) {
-      console.error('Error creando partido:', err);
-      setError(err.response?.data?.error || 'Error al crear el partido');
+      console.error(err);
+      setFeedback({
+        title: 'No se pudo crear el partido',
+        message: err.response?.data?.error || 'Error al crear el partido',
+        tone: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -376,100 +495,145 @@ export default function AdminMatchForm() {
 
   return (
     <div className="space-y-8">
+      <AdminFeedbackModal
+        isOpen={Boolean(feedback)}
+        title={feedback?.title || ''}
+        message={feedback?.message || ''}
+        tone={feedback?.tone || 'info'}
+        onClose={() => setFeedback(null)}
+      />
+
       <h3 className="text-lg font-semibold">Crear Partido</h3>
 
-      {error && <div className="p-3 bg-red-100 text-red-700 rounded">{error}</div>}
-      {success && <div className="p-3 bg-green-100 text-green-700 rounded">{success}</div>}
+      {error && <div className="rounded bg-red-100 p-3 text-red-700">{error}</div>}
 
-      {/* Select Tournament */}
-      <div className="bg-gray-50 p-6 rounded-lg">
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h4 className="text-md font-semibold text-amber-900">Estado del partido</h4>
+            <p className="text-sm text-amber-800">
+              Si fue cancelado, selecciona al equipo favorecido y el sistema asignará un 3-0 automáticamente.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={isCanceledMatch}
+            onChange={(event) => updateFormData('status', event.target.checked ? 'CANCELED' : 'PLAYED')}
+            className="h-5 w-5"
+          />
+        </div>
+
+        {isCanceledMatch && (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Equipo favorecido</label>
+              <select
+                value={formData.awardedTo}
+                onChange={(event) => updateFormData('awardedTo', event.target.value)}
+                className="w-full rounded border p-2"
+              >
+                <option value="LAMBERPOOL">Lamberpool FC</option>
+                <option value="OPPONENT">Rival</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Detalle de la cancelacion</label>
+              <input
+                type="text"
+                value={formData.cancelReason}
+                onChange={(event) => updateFormData('cancelReason', event.target.value)}
+                placeholder="Ej: rival no se presento"
+                className="w-full rounded border p-2"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg bg-gray-50 p-6">
         <h4 className="text-md font-semibold mb-4">Paso 1: Selecciona Torneo</h4>
         <div>
-          <label className="block text-sm font-medium mb-1">Torneo</label>
+          <label className="mb-1 block text-sm font-medium">Torneo</label>
           <select
             value={selectedTournament}
-            onChange={(e) => setSelectedTournament(e.target.value)}
-            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(event) => setSelectedTournament(event.target.value)}
+            className="w-full rounded border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Selecciona un torneo</option>
-            {tournaments.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+            {tournaments.map((tournament) => (
+              <option key={tournament.id} value={tournament.id}>{tournament.name}</option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Select Season */}
       {selectedTournament && (
-        <div className="bg-gray-50 p-6 rounded-lg">
+        <div className="rounded-lg bg-gray-50 p-6">
           <h4 className="text-md font-semibold mb-4">Paso 2: Selecciona Temporada</h4>
           <div>
-            <label className="block text-sm font-medium mb-1">Temporada (Año)</label>
+            <label className="mb-1 block text-sm font-medium">Temporada (Año)</label>
             <select
               value={selectedSeason}
-              onChange={(e) => setSelectedSeason(e.target.value)}
-              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(event) => setSelectedSeason(event.target.value)}
+              className="w-full rounded border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Selecciona una temporada</option>
-              {seasons.map(s => (
-                <option key={s.id} value={s.id}>{s.year}</option>
+              {seasons.map((season) => (
+                <option key={season.id} value={season.id}>{season.year}</option>
               ))}
             </select>
           </div>
         </div>
       )}
 
-      {/* Create or Select Competition */}
       {selectedSeason && (
         <div className="space-y-4">
-          {/* Existing competitions */}
-          <div className="bg-gray-50 p-6 rounded-lg">
-            <h4 className="text-md font-semibold mb-4">Paso 3: Selecciona o Crea Competición</h4>
+          <div className="rounded-lg bg-gray-50 p-6">
+            <h4 className="text-md font-semibold mb-4">Paso 3: Selecciona o crea competencia</h4>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Competiciones Existentes:</label>
+              <label className="mb-1 block text-sm font-medium">Competiciones existentes</label>
               {loadingCompetitions ? (
                 <p className="text-sm text-gray-500">Cargando...</p>
               ) : competitions.length === 0 ? (
-                <p className="text-sm text-gray-500">No hay competiciones en esta temporada aún</p>
+                <p className="text-sm text-gray-500">No hay competiciones en esta temporada aún.</p>
               ) : (
                 <div className="space-y-2">
-                  {competitions.map(c => (
-                    <label key={c.id} className="flex items-center p-2 bg-white border rounded hover:bg-blue-50 cursor-pointer">
+                  {competitions.map((competition) => (
+                    <label key={competition.id} className="flex cursor-pointer items-center rounded border bg-white p-2 hover:bg-blue-50">
                       <input
                         type="radio"
                         name="competition"
-                        value={c.id}
-                        checked={selectedCompetition === c.id}
-                        onChange={(e) => setSelectedCompetition(e.target.value)}
-                        className="w-4 h-4 text-blue-600"
+                        value={competition.id}
+                        checked={selectedCompetition === competition.id}
+                        onChange={(event) => setSelectedCompetition(event.target.value)}
+                        className="h-4 w-4 text-blue-600"
                       />
-                      <span className="ml-2 text-sm">{c.name}</span>
+                      <span className="ml-2 text-sm">{competition.name}</span>
                     </label>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Create new competition */}
             <div className="border-t pt-4">
-              <h5 className="text-sm font-semibold mb-3">O Crea una Nueva Competición:</h5>
+              <h5 className="mb-3 text-sm font-semibold">O crea una nueva competencia</h5>
               <form onSubmit={handleCreateCompetition} className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Nombre de Competición</label>
+                  <label className="mb-1 block text-sm font-medium">Nombre de competencia</label>
                   <input
                     type="text"
                     value={competitionForm.name}
-                    onChange={(e) => setCompetitionForm({ ...competitionForm, name: e.target.value })}
+                    onChange={(event) => setCompetitionForm({ ...competitionForm, name: event.target.value })}
                     placeholder="Ej: Fase Regular, Playoff, Final"
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full rounded border p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading || !competitionForm.seasonId}
-                  className="w-full bg-purple-600 text-white p-2 rounded font-medium hover:bg-purple-700 disabled:opacity-50"
+                  className="w-full rounded bg-purple-600 p-2 font-medium text-white hover:bg-purple-700 disabled:opacity-50"
                 >
-                  {loading ? 'Creando...' : 'Crear Competición'}
+                  {loading ? 'Creando...' : 'Crear Competencia'}
                 </button>
               </form>
             </div>
@@ -477,18 +641,17 @@ export default function AdminMatchForm() {
         </div>
       )}
 
-      {/* Select Participants */}
-      {selectedCompetition && (
-        <div className="bg-gray-50 p-6 rounded-lg space-y-4">
-          <h4 className="text-md font-semibold mb-2">Paso 4: Jugadores Convocados</h4>
-          <p className="text-sm text-gray-600">Selecciona los jugadores que participaron (titulares y suplentes).</p>
+      {selectedCompetition && !isCanceledMatch && (
+        <div className="rounded-lg bg-gray-50 p-6 space-y-4">
+          <h4 className="text-md font-semibold mb-2">Paso 4: Jugadores convocados</h4>
+          <p className="text-sm text-gray-600">Selecciona los jugadores que participaron, incluidos suplentes.</p>
 
           {players.length === 0 ? (
             <p className="text-sm text-gray-500">No hay jugadores cargados en el equipo.</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {players.map((player) => (
-                <label key={player.id} className="flex items-center gap-2 bg-white border rounded p-3">
+                <label key={player.id} className="flex items-center gap-2 rounded border bg-white p-3">
                   <input
                     type="checkbox"
                     checked={Boolean(selectedParticipants[player.id])}
@@ -505,19 +668,18 @@ export default function AdminMatchForm() {
         </div>
       )}
 
-      {/* Formation */}
-      {selectedCompetition && (
-        <div className="bg-gray-50 p-6 rounded-lg space-y-4">
-          <h4 className="text-md font-semibold mb-2">Paso 5: Formacion y Posiciones</h4>
+      {selectedCompetition && !isCanceledMatch && (
+        <div className="rounded-lg bg-gray-50 p-6 space-y-4">
+          <h4 className="text-md font-semibold mb-2">Paso 5: Formacion y posiciones</h4>
           <div className="max-w-xs">
-            <label className="block text-sm font-medium mb-1">Formacion</label>
+            <label className="mb-1 block text-sm font-medium">Formacion</label>
             <select
               value={formationKey}
-              onChange={(e) => {
-                setFormationKey(e.target.value as FormationKey);
+              onChange={(event) => {
+                setFormationKey(event.target.value as FormationKey);
                 setSlotAssignments({});
               }}
-              className="w-full p-2 border rounded"
+              className="w-full rounded border p-2"
             >
               <option value="2-4-1">2-4-1</option>
               <option value="3-3-1">3-3-1</option>
@@ -525,120 +687,49 @@ export default function AdminMatchForm() {
           </div>
 
           <div className="space-y-6">
-            {/* Arquero */}
             <div className="space-y-2">
-              <h5 className="text-sm font-bold text-blue-800 uppercase tracking-wide">Arquero</h5>
-              {slots.filter(s => s.id === 'GK').map((slot) => {
+              <h5 className="text-sm font-bold uppercase tracking-wide text-blue-800">Arquero</h5>
+              {slots.filter((slot) => slot.id === 'GK').map((slot) => {
                 const assigned = slotAssignments[slot.id] || '';
                 return (
-                  <div key={slot.id} className="bg-white border-2 border-blue-300 rounded p-3">
-                    <label className="block text-xs text-gray-600 mb-1">{slot.label}</label>
+                  <div key={slot.id} className="rounded border-2 border-blue-300 bg-white p-3">
+                    <label className="mb-1 block text-xs text-gray-600">{slot.label}</label>
                     <select
                       value={assigned}
-                      onChange={(e) => handleAssign(slot.id, e.target.value)}
-                      className="w-full p-2 border rounded text-sm"
+                      onChange={(event) => handleAssign(slot.id, event.target.value)}
+                      className="w-full rounded border p-2 text-sm"
                     >
                       <option value="">Sin asignar</option>
-                      {players
-                        .filter((player) => selectedParticipants[player.id])
-                        .map((player) => (
-                          <option
-                            key={player.id}
-                            value={player.id}
-                            disabled={assignedIds.has(player.id) && player.id !== assigned}
-                          >
-                            #{player.number} {player.name}
-                          </option>
-                        ))}
+                      {selectedPlayers.map((player) => (
+                        <option
+                          key={player.id}
+                          value={player.id}
+                          disabled={assignedIds.has(player.id) && player.id !== assigned}
+                        >
+                          #{player.number} {player.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 );
               })}
             </div>
 
-            {/* Defensas */}
             <div className="space-y-2">
-              <h5 className="text-sm font-bold text-green-800 uppercase tracking-wide">Defensas</h5>
+              <h5 className="text-sm font-bold uppercase tracking-wide text-green-800">Defensas</h5>
               <div className="grid grid-cols-1 gap-2">
-                {slots.filter(s => s.id.startsWith('DEF_')).map((slot) => {
+                {slots.filter((slot) => slot.id.startsWith('DEF_')).map((slot) => {
                   const assigned = slotAssignments[slot.id] || '';
                   return (
-                    <div key={slot.id} className="bg-white border-2 border-green-300 rounded p-3">
-                      <label className="block text-xs text-gray-600 mb-1">{slot.label}</label>
+                    <div key={slot.id} className="rounded border-2 border-green-300 bg-white p-3">
+                      <label className="mb-1 block text-xs text-gray-600">{slot.label}</label>
                       <select
                         value={assigned}
-                        onChange={(e) => handleAssign(slot.id, e.target.value)}
-                        className="w-full p-2 border rounded text-sm"
+                        onChange={(event) => handleAssign(slot.id, event.target.value)}
+                        className="w-full rounded border p-2 text-sm"
                       >
                         <option value="">Sin asignar</option>
-                        {players
-                          .filter((player) => selectedParticipants[player.id])
-                          .map((player) => (
-                            <option
-                              key={player.id}
-                              value={player.id}
-                              disabled={assignedIds.has(player.id) && player.id !== assigned}
-                            >
-                              #{player.number} {player.name}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Medios */}
-            <div className="space-y-2">
-              <h5 className="text-sm font-bold text-yellow-800 uppercase tracking-wide">Mediocampistas</h5>
-              <div className="grid grid-cols-1 gap-2">
-                {slots.filter(s => s.id.startsWith('MID_')).map((slot) => {
-                  const assigned = slotAssignments[slot.id] || '';
-                  return (
-                    <div key={slot.id} className="bg-white border-2 border-yellow-300 rounded p-3">
-                      <label className="block text-xs text-gray-600 mb-1">{slot.label}</label>
-                      <select
-                        value={assigned}
-                        onChange={(e) => handleAssign(slot.id, e.target.value)}
-                        className="w-full p-2 border rounded text-sm"
-                      >
-                        <option value="">Sin asignar</option>
-                        {players
-                          .filter((player) => selectedParticipants[player.id])
-                          .map((player) => (
-                            <option
-                              key={player.id}
-                              value={player.id}
-                              disabled={assignedIds.has(player.id) && player.id !== assigned}
-                            >
-                              #{player.number} {player.name}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Delanteros */}
-            <div className="space-y-2">
-              <h5 className="text-sm font-bold text-red-800 uppercase tracking-wide">Ataque</h5>
-              {slots.filter(s => s.id.startsWith('FWD')).map((slot) => {
-                const assigned = slotAssignments[slot.id] || '';
-                return (
-                  <div key={slot.id} className="bg-white border-2 border-red-300 rounded p-3">
-                    <label className="block text-xs text-gray-600 mb-1">{slot.label}</label>
-                    <select
-                      value={assigned}
-                      onChange={(e) => handleAssign(slot.id, e.target.value)}
-                      className="w-full p-2 border rounded text-sm"
-                    >
-                      <option value="">Sin asignar</option>
-                      {players
-                        .filter((player) => selectedParticipants[player.id])
-                        .map((player) => (
+                        {selectedPlayers.map((player) => (
                           <option
                             key={player.id}
                             value={player.id}
@@ -647,6 +738,65 @@ export default function AdminMatchForm() {
                             #{player.number} {player.name}
                           </option>
                         ))}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h5 className="text-sm font-bold uppercase tracking-wide text-yellow-800">Mediocampistas</h5>
+              <div className="grid grid-cols-1 gap-2">
+                {slots.filter((slot) => slot.id.startsWith('MID_')).map((slot) => {
+                  const assigned = slotAssignments[slot.id] || '';
+                  return (
+                    <div key={slot.id} className="rounded border-2 border-yellow-300 bg-white p-3">
+                      <label className="mb-1 block text-xs text-gray-600">{slot.label}</label>
+                      <select
+                        value={assigned}
+                        onChange={(event) => handleAssign(slot.id, event.target.value)}
+                        className="w-full rounded border p-2 text-sm"
+                      >
+                        <option value="">Sin asignar</option>
+                        {selectedPlayers.map((player) => (
+                          <option
+                            key={player.id}
+                            value={player.id}
+                            disabled={assignedIds.has(player.id) && player.id !== assigned}
+                          >
+                            #{player.number} {player.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h5 className="text-sm font-bold uppercase tracking-wide text-red-800">Ataque</h5>
+              {slots.filter((slot) => slot.id.startsWith('FWD')).map((slot) => {
+                const assigned = slotAssignments[slot.id] || '';
+                return (
+                  <div key={slot.id} className="rounded border-2 border-red-300 bg-white p-3">
+                    <label className="mb-1 block text-xs text-gray-600">{slot.label}</label>
+                    <select
+                      value={assigned}
+                      onChange={(event) => handleAssign(slot.id, event.target.value)}
+                      className="w-full rounded border p-2 text-sm"
+                    >
+                      <option value="">Sin asignar</option>
+                      {selectedPlayers.map((player) => (
+                        <option
+                          key={player.id}
+                          value={player.id}
+                          disabled={assignedIds.has(player.id) && player.id !== assigned}
+                        >
+                          #{player.number} {player.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 );
@@ -657,14 +807,14 @@ export default function AdminMatchForm() {
       )}
 
       {selectedCompetition && (
-        <div className="bg-gray-50 p-6 rounded-lg space-y-4">
+        <div className="rounded-lg bg-gray-50 p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-md font-semibold">Partidos existentes</h4>
             <button
               type="button"
               onClick={handleDeleteAllMatches}
               disabled={loading}
-              className="text-xs bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+              className="rounded bg-red-600 px-3 py-2 text-xs text-white hover:bg-red-700 disabled:opacity-50"
             >
               Eliminar todos los partidos
             </button>
@@ -677,18 +827,19 @@ export default function AdminMatchForm() {
           ) : (
             <div className="space-y-2">
               {existingMatches.map((match) => (
-                <div key={match.id} className="flex items-center justify-between bg-white border rounded p-3">
+                <div key={match.id} className="flex items-center justify-between rounded border bg-white p-3">
                   <div>
                     <p className="text-sm font-semibold">vs {match.opponent}</p>
                     <p className="text-xs text-gray-500">
-                      {new Date(match.date).toLocaleDateString('es-ES')} — {match.goalsFor} - {match.goalsAgainst}
+                      {new Date(match.date).toLocaleDateString('es-ES')} - {match.goalsFor} - {match.goalsAgainst}
+                      {match.status === 'CANCELED' ? ' - Cancelado' : ''}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleDeleteMatch(match.id)}
                     disabled={loading}
-                    className="text-xs bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 disabled:opacity-50"
+                    className="rounded bg-red-500 px-3 py-2 text-xs text-white hover:bg-red-600 disabled:opacity-50"
                   >
                     Eliminar
                   </button>
@@ -699,59 +850,60 @@ export default function AdminMatchForm() {
         </div>
       )}
 
-      {/* Create Match */}
       {selectedCompetition && (
-        <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-lg space-y-4">
-          <h4 className="text-md font-semibold mb-4">Paso 6: Detalles del Partido</h4>
+        <form onSubmit={handleSubmit} className="rounded-lg bg-gray-50 p-6 space-y-4">
+          <h4 className="text-md font-semibold mb-4">Paso 6: Detalles del partido</h4>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Rival</label>
+            <label className="mb-1 block text-sm font-medium">Rival</label>
             <input
               type="text"
               name="opponent"
               value={formData.opponent}
-              onChange={handleChange}
+              onChange={(event) => updateFormData('opponent', event.target.value)}
               required
-              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Ej: Equipo Rival FC"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Fecha del Partido</label>
+            <label className="mb-1 block text-sm font-medium">Fecha del partido</label>
             <input
               type="date"
               name="date"
               value={formData.date}
-              onChange={handleChange}
+              onChange={(event) => updateFormData('date', event.target.value)}
               required
-              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium mb-1">Goles a Favor</label>
+              <label className="mb-1 block text-sm font-medium">Goles a favor</label>
               <input
                 type="number"
                 name="goalsFor"
                 value={formData.goalsFor}
-                onChange={handleChange}
+                onChange={(event) => updateFormData('goalsFor', event.target.value)}
                 required
                 min="0"
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isCanceledMatch}
+                className="w-full rounded border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Goles en Contra</label>
+              <label className="mb-1 block text-sm font-medium">Goles en contra</label>
               <input
                 type="number"
                 name="goalsAgainst"
                 value={formData.goalsAgainst}
-                onChange={handleChange}
+                onChange={(event) => updateFormData('goalsAgainst', event.target.value)}
                 required
                 min="0"
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isCanceledMatch}
+                className="w-full rounded border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
               />
             </div>
           </div>
@@ -759,24 +911,24 @@ export default function AdminMatchForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white p-2 rounded font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="w-full rounded bg-blue-600 p-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? 'Creando...' : 'Crear Partido'}
           </button>
         </form>
       )}
 
-      <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded">
-        <p className="text-sm text-blue-800 mb-2">
-          <span className="font-semibold">ℹ️ Instrucciones:</span>
+      <div className="rounded border-l-4 border-blue-600 bg-blue-50 p-4">
+        <p className="mb-2 text-sm text-blue-800">
+          <span className="font-semibold">Instrucciones:</span>
         </p>
-        <ol className="text-sm text-blue-800 list-decimal list-inside space-y-1">
-          <li>Selecciona un <strong>torneo</strong></li>
-          <li>Selecciona una <strong>temporada</strong> (año)</li>
-          <li>Selecciona una <strong>competición</strong> o crea una nueva</li>
-          <li>Selecciona los <strong>jugadores</strong> convocados</li>
-          <li>Define la <strong>formacion</strong> y posiciones</li>
-          <li>Completa los detalles del <strong>partido</strong></li>
+        <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
+          <li>Selecciona un torneo.</li>
+          <li>Selecciona una temporada.</li>
+          <li>Selecciona o crea una competencia.</li>
+          <li>Si el partido se jugó, elige convocados y formacion.</li>
+          <li>Si fue cancelado, marca el checkpoint y elige al equipo favorecido.</li>
+          <li>Completa rival, fecha y guarda el partido.</li>
         </ol>
       </div>
     </div>

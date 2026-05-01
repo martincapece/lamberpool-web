@@ -8,9 +8,21 @@ router.get('/options', async (req, res) => {
   try {
     // Get all seasons with their tournaments
     const seasons = await prisma.season.findMany({
-      include: {
-        tournament: true,
-        competitions: true,
+      select: {
+        year: true,
+        tournament: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        competitions: {
+          select: {
+            id: true,
+            name: true,
+          },
+          orderBy: { name: 'asc' },
+        },
       },
       orderBy: {
         year: 'desc',

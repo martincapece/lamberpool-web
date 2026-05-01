@@ -14,13 +14,21 @@ router.get('/:seasonId', async (req, res) => {
 
     const competitions = await prisma.competition.findMany({
       where: { seasonId },
-      include: { matches: { orderBy: { date: 'desc' } } },
+      select: {
+        id: true,
+        name: true,
+        seasonId: true,
+        finalTablePhotoUrl: true,
+        matches: {
+          select: { id: true },
+          orderBy: { date: 'desc' },
+        },
+      },
+      orderBy: { name: 'asc' },
     });
 
-    console.log(`Competitions loaded for season ${seasonId}:`, competitions);
     res.json(competitions);
   } catch (error: any) {
-    console.error('Error fetching competitions:', error);
     res.status(500).json({ error: 'Failed to fetch competitions', details: error.message });
   }
 });
@@ -44,10 +52,8 @@ router.get('/:seasonId/active', async (req, res) => {
       return res.status(404).json({ error: 'No active competition found' });
     }
 
-    console.log(`Active competition loaded for season ${seasonId}:`, competition);
     res.json(competition);
   } catch (error: any) {
-    console.error('Error fetching active competition:', error);
     res.status(500).json({ error: 'Failed to fetch active competition', details: error.message });
   }
 });
@@ -72,73 +78,75 @@ router.post('/', async (req, res) => {
       },
     });
 
-    console.log('Competition created:', competition);
     res.status(201).json(competition);
   } catch (error: any) {
-    console.error('Error creating competition:', error);
     res.status(500).json({ error: 'Failed to create competition', details: error.message });
   }
 });
 
-// DELETE competition con cascade inteligente
+// DELETE competition with cascading cleanup
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Obtener la competencia para saber su seasonId
-    const competition = await prisma.competition.findUnique({
-      where: { id },
-      include: { season: true },
-    });
-
-    if (!competition) {
-      return res.status(404).json({ error: 'Competition not found' });
-    }
-
-    const seasonId = competition.season.id;
-
-    // Eliminar la competencia
-    await prisma.competition.delete({
-      where: { id },
-    });
-
-    // Verificar si quedan competencias en la season
-    const remainingCompetitions = await prisma.competition.count({
-      where: { seasonId },
-    });
-
-    // Si no hay más competencias, eliminar la season
-    if (remainingCompetitions === 0) {
-      const season = await prisma.season.findUnique({
-        where: { id: seasonId },
-        include: { tournament: true },
+    const cleanupResult = await prisma.$transaction(async (tx) => {
+      const competition = await tx.competition.findUnique({
+        where: { id },
+        include: {
+          season: {
+            select: {
+              id: true,
+              tournamentId: true,
+            },
+          },
+        },
       });
 
-      if (season) {
-        const tournamentId = season.tournament.id;
+      if (!competition) {
+        throw Object.assign(new Error('Competition not found'), { code: 'P2025' });
+      }
 
-        // Eliminar la season
-        await prisma.season.delete({
-          where: { id: seasonId },
+      await tx.competition.delete({
+        where: { id },
+      });
+
+      let deletedSeasonId: string | null = null;
+      let deletedTournamentId: string | null = null;
+
+      const remainingCompetitions = await tx.competition.count({
+        where: { seasonId: competition.season.id },
+      });
+
+      if (remainingCompetitions === 0) {
+        deletedSeasonId = competition.season.id;
+        await tx.season.delete({
+          where: { id: competition.season.id },
         });
 
-        // Verificar si quedan seasons en el tournament
-        const remainingSeasons = await prisma.season.count({
-          where: { tournamentId },
+        const remainingSeasons = await tx.season.count({
+          where: { tournamentId: competition.season.tournamentId },
         });
 
-        // Si no hay más seasons, eliminar el tournament
         if (remainingSeasons === 0) {
-          await prisma.tournament.delete({
-            where: { id: tournamentId },
+          deletedTournamentId = competition.season.tournamentId;
+          await tx.tournament.delete({
+            where: { id: competition.season.tournamentId },
           });
         }
       }
-    }
 
-    res.json({ message: 'Competition deleted successfully with cascading cleanup' });
+      return {
+        deletedCompetitionId: id,
+        deletedSeasonId,
+        deletedTournamentId,
+      };
+    });
+
+    res.json({
+      message: 'Competition deleted successfully with cascading cleanup',
+      ...cleanupResult,
+    });
   } catch (error: any) {
-    console.error('Error deleting competition:', error);
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Competition not found' });
     }
@@ -169,7 +177,6 @@ router.put('/:id/final-table-photo', async (req, res) => {
 
     res.json(competition);
   } catch (error: any) {
-    console.error('Error updating competition photo:', error);
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Competition not found' });
     }
@@ -195,7 +202,6 @@ router.delete('/:id/final-table-photo', async (req, res) => {
 
     res.json(competition);
   } catch (error: any) {
-    console.error('Error deleting competition photo:', error);
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Competition not found' });
     }

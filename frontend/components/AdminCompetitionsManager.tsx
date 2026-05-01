@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { seasonsAPI, competitionsAPI, tournamentsAPI } from '@/lib/api';
+import AdminFeedbackModal from './AdminFeedbackModal';
+
+interface Tournament {
+  id: string;
+  name: string;
+}
 
 interface Season {
   id: string;
@@ -18,9 +24,11 @@ interface Competition {
 }
 
 export default function AdminCompetitionsManager() {
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [feedback, setFeedback] = useState<{ title: string; message: string; tone: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -29,17 +37,18 @@ export default function AdminCompetitionsManager() {
   const loadData = async () => {
     try {
       setLoading(true);
-      // Obtener torneos
       const tournamentsResponse = await tournamentsAPI.getAll();
+      const tournamentsData = tournamentsResponse.data;
+      setTournaments(tournamentsData);
 
-      // Obtener todas las temporadas de todos los torneos
-      const allSeasons: Season[] = [];
-      for (const tournament of tournamentsResponse.data) {
-        const seasonsResponse = await seasonsAPI.getAll(tournament.id);
-        allSeasons.push(...seasonsResponse.data.map((s: any) => ({ ...s, tournament })));
-      }
+      const allSeasons = await Promise.all(
+        tournamentsData.map(async (tournament: Tournament) => {
+          const seasonsResponse = await seasonsAPI.getAll(tournament.id);
+          return seasonsResponse.data.map((season: any) => ({ ...season, tournament }));
+        })
+      );
 
-      setSeasons(allSeasons);
+      setSeasons(allSeasons.flat());
       setError('');
     } catch (err) {
       console.error('Error loading data:', err);
@@ -57,10 +66,41 @@ export default function AdminCompetitionsManager() {
     try {
       await seasonsAPI.delete(seasonId);
       await loadData();
-      alert('Temporada eliminada exitosamente');
+      setFeedback({
+        title: 'Temporada eliminada',
+        message: `La temporada ${year} de ${tournamentName} se eliminó correctamente.`,
+        tone: 'success',
+      });
     } catch (err: any) {
       console.error('Error deleting season:', err);
-      alert(err.response?.data?.error || 'Error al eliminar la temporada');
+      setFeedback({
+        title: 'No se pudo eliminar la temporada',
+        message: err.response?.data?.error || 'Error al eliminar la temporada',
+        tone: 'error',
+      });
+    }
+  };
+
+  const handleDeleteTournament = async (tournamentId: string, tournamentName: string) => {
+    if (!confirm(`¿Eliminar el torneo "${tournamentName}"? Esto eliminará las temporadas, competencias y partidos asociados.`)) {
+      return;
+    }
+
+    try {
+      await tournamentsAPI.delete(tournamentId);
+      await loadData();
+      setFeedback({
+        title: 'Torneo eliminado',
+        message: `El torneo "${tournamentName}" se eliminó correctamente.`,
+        tone: 'success',
+      });
+    } catch (err: any) {
+      console.error('Error deleting tournament:', err);
+      setFeedback({
+        title: 'No se pudo eliminar el torneo',
+        message: err.response?.data?.error || 'Error al eliminar el torneo',
+        tone: 'error',
+      });
     }
   };
 
@@ -72,12 +112,24 @@ export default function AdminCompetitionsManager() {
     try {
       await competitionsAPI.delete(competitionId);
       await loadData();
-      alert(`✅ Competencia "${competitionName}" eliminada exitosamente.\n\nEl sistema limpió automáticamente las temporadas y torneos vacíos.`);
+      setFeedback({
+        title: 'Competencia eliminada',
+        message: `La competencia "${competitionName}" se eliminó correctamente.\n\nEl sistema limpió automáticamente temporadas y torneos vacíos.`,
+        tone: 'success',
+      });
     } catch (err: any) {
       console.error('Error deleting competition:', err);
-      alert(err.response?.data?.error || 'Error al eliminar la competencia');
+      setFeedback({
+        title: 'No se pudo eliminar la competencia',
+        message: err.response?.data?.error || 'Error al eliminar la competencia',
+        tone: 'error',
+      });
     }
   };
+
+  const orphanTournaments = tournaments.filter(
+    (tournament) => !seasons.some((season) => season.tournament.id === tournament.id)
+  );
 
   if (loading) {
     return (
@@ -89,6 +141,14 @@ export default function AdminCompetitionsManager() {
 
   return (
     <div className="bg-white rounded-lg shadow">
+      <AdminFeedbackModal
+        isOpen={Boolean(feedback)}
+        title={feedback?.title || ''}
+        message={feedback?.message || ''}
+        tone={feedback?.tone || 'info'}
+        onClose={() => setFeedback(null)}
+      />
+
       <div className="p-6 border-b border-gray-200">
         <h2 className="text-2xl font-bold text-gray-900">Gestionar Temporadas y Competencias</h2>
         <p className="text-sm text-gray-600 mt-1">
@@ -103,6 +163,28 @@ export default function AdminCompetitionsManager() {
       )}
 
       <div className="p-6 space-y-6">
+        {orphanTournaments.length > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <h3 className="text-sm font-semibold text-amber-900">Torneos sin temporadas</h3>
+            <p className="mt-1 text-sm text-amber-800">
+              Estos torneos quedaron sin temporadas activas. Puedes eliminarlos directamente.
+            </p>
+            <div className="mt-3 space-y-2">
+              {orphanTournaments.map((tournament) => (
+                <div key={tournament.id} className="flex items-center justify-between rounded bg-white px-3 py-2">
+                  <span className="text-sm font-medium text-gray-800">{tournament.name}</span>
+                  <button
+                    onClick={() => handleDeleteTournament(tournament.id, tournament.name)}
+                    className="rounded bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                  >
+                    Eliminar torneo
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {seasons.length === 0 && (
           <p className="text-gray-500 text-center py-8">No hay temporadas registradas</p>
         )}

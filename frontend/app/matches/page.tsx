@@ -19,6 +19,9 @@ interface Match {
   goalsFor: number;
   goalsAgainst: number;
   result: 'W' | 'D' | 'L';
+  status?: 'PLAYED' | 'CANCELED';
+  awardedTo?: 'LAMBERPOOL' | 'OPPONENT' | null;
+  cancelReason?: string | null;
   youtubeUrl?: string;
   competition?: {
     id: string;
@@ -147,6 +150,14 @@ function MatchesContent() {
             <h1 className="text-2xl md:text-3xl font-bold mt-2 truncate">
               Lamberpool FC vs {selectedMatch.opponent}
             </h1>
+            {selectedMatch.status === 'CANCELED' && (
+              <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-amber-700 md:text-sm">
+                Partido cancelado {selectedMatch.awardedTo ? `• Ganador por cancelacion: ${selectedMatch.awardedTo === 'LAMBERPOOL' ? 'Lamberpool FC' : selectedMatch.opponent}` : ''}
+              </p>
+            )}
+            {selectedMatch.status === 'CANCELED' && selectedMatch.cancelReason && (
+              <p className="mt-1 text-xs text-gray-600 md:text-sm">{selectedMatch.cancelReason}</p>
+            )}
           </div>
           <div
             className={`text-3xl md:text-4xl font-bold flex-shrink-0 ${
@@ -236,6 +247,11 @@ function MatchesContent() {
                         })}
                       </p>
                       <p className="text-base md:text-lg font-semibold mt-1 truncate">vs {match.opponent}</p>
+                      {match.status === 'CANCELED' && (
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-amber-700">
+                          Cancelado
+                        </p>
+                      )}
                       {match.competition?.season?.tournament && (
                         <p className="text-xs text-gray-500 mt-1 truncate">
                           {match.competition.season.tournament.name}
