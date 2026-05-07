@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
 import { useRouter } from 'next/navigation';
+import { FilterOptions } from './PlayerStatsFilters';
 
 interface PlayerStatsProps {
   id: string;
@@ -9,10 +10,21 @@ interface PlayerStatsProps {
   goals: number;
   rating: number | null;
   matches?: number;
+  filter: FilterOptions;
 }
 
-export default function PlayerStats({ id, name, number, goals, rating, matches = 0 }: PlayerStatsProps) {
+export default function PlayerStats({ id, name, number, goals, rating, matches = 0, filter }: PlayerStatsProps) {
   const router = useRouter();
+
+  const handleClick = () => {
+    const queryParams = new URLSearchParams();
+    queryParams.set('filter', filter.type);
+    if (filter.yearValue) queryParams.set('year', filter.yearValue.toString());
+    if (filter.tournamentId) queryParams.set('tournament', filter.tournamentId);
+    if (filter.competitionId) queryParams.set('competition', filter.competitionId);
+    
+    router.push(`/players/${id}?${queryParams.toString()}`);
+  };
 
   const ratingColor =
     rating === null
@@ -29,14 +41,10 @@ export default function PlayerStats({ id, name, number, goals, rating, matches =
                 ? 'text-purple-600'
                 : 'text-gray-400';
 
-  const handleClick = () => {
-    router.push(`/players/${id}`);
-  };
-
   return (
     <button
       onClick={handleClick}
-      className="w-full bg-white rounded-lg shadow p-3 md:p-4 hover:shadow-lg transition cursor-pointer text-left"
+      className="w-full bg-white rounded-lg shadow p-3 md:p-4 hover:shadow-lg transition cursor-pointer text-left hover:scale-105 duration-200"
     >
       <div className="flex justify-between items-start mb-2 md:mb-3">
         <div>
@@ -65,5 +73,5 @@ export default function PlayerStats({ id, name, number, goals, rating, matches =
         </div>
       </div>
     </button>
-  )
+  );
 }

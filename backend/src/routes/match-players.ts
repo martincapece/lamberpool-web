@@ -82,7 +82,7 @@ router.get('/player/:playerId', async (req, res) => {
             opponent: true,
             date: true,
             goalsFor: true,
-            goalsAgainst: true,
+            goalsAgainst: true, competition: { select: { name: true, season: { select: { year: true, tournament: { select: { name: true } } } } } },
           },
         },
         ratings: {
@@ -184,3 +184,5 @@ router.delete('/:id', async (req, res) => {
 });
 
 export default router;
+
+
