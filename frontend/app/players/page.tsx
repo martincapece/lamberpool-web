@@ -193,6 +193,58 @@ export default function PlayersPage() {
           </div>
         </section>
       )}
+
+      {!loading && players.length > 0 && (
+        <section className="bg-white rounded-lg shadow p-4 md:p-6">
+          <h2 className="text-lg md:text-2xl font-bold text-blue-900 mb-3 md:mb-4">
+            Valoraciones Generales
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-xs md:text-sm">
+              <thead>
+                <tr className="border-b-2 border-gray-200">
+                  <th className="text-left p-2 md:p-3 font-semibold text-gray-700">Jugador</th>
+                  <th className="text-center p-2 md:p-3 font-semibold text-gray-700">Partidos</th>
+                  <th className="text-center p-2 md:p-3 font-semibold text-gray-700">Promedio</th>
+                  <th className="text-center p-2 md:p-3 font-semibold text-gray-700">Goles</th>
+                  <th className="text-center p-2 md:p-3 font-semibold text-gray-700">Tarjetas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {players
+                  .map((player) => {
+                    const stats = getPlayerStats(player);
+                    return {
+                      ...player,
+                      stats,
+                    };
+                  })
+                  .sort((a, b) => {
+                    if (a.stats.rating === null && b.stats.rating === null) return 0;
+                    if (a.stats.rating === null) return 1;
+                    if (b.stats.rating === null) return -1;
+                    return b.stats.rating - a.stats.rating;
+                  })
+                  .map((player) => (
+                    <tr key={player.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="p-2 md:p-3 text-gray-800 font-medium">
+                        {player.name} (#{player.number})
+                      </td>
+                      <td className="p-2 md:p-3 text-center text-gray-700">{player.stats.matches}</td>
+                      <td className="p-2 md:p-3 text-center font-bold text-blue-700">
+                        {player.stats.rating !== null ? player.stats.rating.toFixed(2) : 'S/N'}
+                      </td>
+                      <td className="p-2 md:p-3 text-center text-gray-700">{player.stats.goals}</td>
+                      <td className="p-2 md:p-3 text-center text-gray-700">
+                        {player.stats.yellowCards + player.stats.redCards}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

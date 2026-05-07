@@ -20,7 +20,7 @@ interface MatchPlayerRecord {
     date: string;
     goalsFor: number;
     goalsAgainst: number;
-    competition: {
+    competition?: {
       id: string;
       name: string;
       season: {
@@ -41,9 +41,9 @@ interface Player {
 }
 
 const formatCardsDisplay = (cards: string) => {
-  if (cards === 'Y') return 'ðŸŸ¨';
-  if (cards === 'R') return 'ðŸŸ¥';
-  if (cards === 'YY') return 'ðŸŸ¨ðŸŸ¥';
+  if (cards === 'Y') return '🟨';
+  if (cards === 'R') return '🟥';
+  if (cards === 'YY') return '🟨🟥';
   return '-';
 };
 
@@ -78,21 +78,30 @@ export default function PlayerDetailPage() {
 
         let matchPlayers = matchPlayersResponse.data as MatchPlayerRecord[];
 
-        // Leer filtros del URL
-        const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-        const filterType = searchParams.get("filter");
-        const yearValue = searchParams.get("year");
-        const tournamentId = searchParams.get("tournament");
-        const competitionId = searchParams.get("competition");
+        // Read filters from URL
+        const searchParams = new URLSearchParams(
+          typeof window !== 'undefined' ? window.location.search : ''
+        );
+        const filterType = searchParams.get('filter');
+        const yearValue = searchParams.get('year');
+        const tournamentId = searchParams.get('tournament');
+        const competitionId = searchParams.get('competition');
         
-        // Aplicar filtros si existen
-        if (filterType && filterType !== "all") {
-          if (filterType === "year" && yearValue) {
-            matchPlayers = matchPlayers.filter(mp => mp.match?.competition?.season?.year === parseInt(yearValue));
-          } else if (filterType === "tournament" && tournamentId) {
-            matchPlayers = matchPlayers.filter(mp => mp.match?.competition?.season?.tournament?.id === tournamentId);
-          } else if (filterType === "competition" && competitionId) {
-            matchPlayers = matchPlayers.filter(mp => mp.match?.competition?.id === competitionId);
+        // Apply inherited filters when coming from players list
+        if (filterType && filterType !== 'all') {
+          if (filterType === 'year' && yearValue) {
+            const parsedYear = parseInt(yearValue, 10);
+            matchPlayers = matchPlayers.filter(
+              (mp) => mp.match?.competition?.season?.year === parsedYear
+            );
+          } else if (filterType === 'tournament' && tournamentId) {
+            matchPlayers = matchPlayers.filter(
+              (mp) => mp.match?.competition?.season?.tournament?.id === tournamentId
+            );
+          } else if (filterType === 'competition' && competitionId) {
+            matchPlayers = matchPlayers.filter(
+              (mp) => mp.match?.competition?.id === competitionId
+            );
           }
         }
 
@@ -145,7 +154,7 @@ export default function PlayerDetailPage() {
       <div className="bg-red-50 border border-red-300 rounded-lg p-4 md:p-6">
         <p className="text-sm md:text-base text-red-700">{error || 'Jugador no encontrado'}</p>
         <Link href="/players" className="text-sm md:text-base text-blue-600 hover:underline mt-3 inline-block">
-          â† Volver a plantilla
+          ← Volver a plantilla
         </Link>
       </div>
     );
@@ -170,7 +179,7 @@ export default function PlayerDetailPage() {
         href="/players" 
         className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm md:text-base font-medium"
       >
-        â† Volver a plantilla
+        ← Volver a plantilla
       </Link>
 
       {/* Player Header */}
@@ -196,7 +205,7 @@ export default function PlayerDetailPage() {
               </div>
               <div className="bg-gray-50 p-3 md:p-4 rounded-lg text-center">
                 <p className="text-xs md:text-sm text-gray-600 font-medium">Goles</p>
-                <p className="text-xl md:text-3xl font-bold text-green-600 mt-2">âš½ {totalGoals}</p>
+                <p className="text-xl md:text-3xl font-bold text-green-600 mt-2">⚽ {totalGoals}</p>
               </div>
               <div className="bg-gray-50 p-3 md:p-4 rounded-lg text-center">
                 <p className="text-xs md:text-sm text-gray-600 font-medium">Tarjetas</p>
@@ -236,6 +245,9 @@ export default function PlayerDetailPage() {
                   <div className="text-xs text-gray-600 mb-3">
                     {new Date(match.match.date).toLocaleDateString('es-ES')}
                   </div>
+                  <div className="text-xs text-gray-500 mb-2">
+                    {match.match.competition?.name || 'Sin competición'}
+                  </div>
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     <div>
                       <span className="text-gray-600">Pos:</span>
@@ -244,7 +256,7 @@ export default function PlayerDetailPage() {
                     <div>
                       <span className="text-gray-600">Goles:</span>
                       {match.goals > 0 ? (
-                        <span className="font-medium ml-1">âš½ {match.goals}</span>
+                        <span className="font-medium ml-1">⚽ {match.goals}</span>
                       ) : (
                         <span className="font-medium ml-1">-</span>
                       )}
@@ -255,7 +267,7 @@ export default function PlayerDetailPage() {
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t text-sm font-bold text-blue-600">
-                    ValoraciÃ³n: {rating !== null ? rating.toFixed(1) : 'S/N'} / 10
+                    Valoración: {rating !== null ? rating.toFixed(1) : 'S/N'} / 10
                   </div>
                 </button>
               );
@@ -268,11 +280,11 @@ export default function PlayerDetailPage() {
               <thead>
                 <tr className="border-b-2 border-gray-300">
                   <th className="text-left p-4 font-semibold text-gray-700">Partido</th>
-                  <th className="text-center p-4 font-semibold text-gray-700">PosiciÃ³n</th>
-                <th className="text-center p-4 font-semibold text-gray-700">CompeticiÃ³n</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Posición</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Competición</th>
                   <th className="text-center p-4 font-semibold text-gray-700">Goles</th>
                   <th className="text-center p-4 font-semibold text-gray-700">Tarjetas</th>
-                  <th className="text-right p-4 font-semibold text-gray-700">ValoraciÃ³n</th>
+                  <th className="text-right p-4 font-semibold text-gray-700">Valoración</th>
                 </tr>
               </thead>
               <tbody>
@@ -292,7 +304,10 @@ export default function PlayerDetailPage() {
                       </td>
                       <td className="text-center p-4 text-gray-700">{match.position}</td>
                       <td className="text-center p-4 text-gray-700">
-                        {match.goals > 0 ? `âš½ ${match.goals}` : '-'}
+                        {match.match.competition?.name || 'Sin competición'}
+                      </td>
+                      <td className="text-center p-4 text-gray-700">
+                        {match.goals > 0 ? `⚽ ${match.goals}` : '-'}
                       </td>
                       <td className="text-center p-4 text-gray-700">
                         {formatCardsDisplay(match.cards)}
@@ -312,7 +327,7 @@ export default function PlayerDetailPage() {
       {matchHistory.length === 0 && (
         <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 md:p-6">
           <p className="text-sm md:text-base text-yellow-800">
-            âš½ Este jugador aÃºn no tiene partidos registrados en su historial.
+            ⚽ Este jugador aún no tiene partidos registrados en su historial.
           </p>
         </div>
       )}

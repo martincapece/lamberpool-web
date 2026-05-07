@@ -82,7 +82,24 @@ router.get('/player/:playerId', async (req, res) => {
             opponent: true,
             date: true,
             goalsFor: true,
-            goalsAgainst: true, competition: { select: { name: true, season: { select: { year: true, tournament: { select: { name: true } } } } } },
+            goalsAgainst: true,
+            competition: {
+              select: {
+                id: true,
+                name: true,
+                season: {
+                  select: {
+                    year: true,
+                    tournament: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
         ratings: {
