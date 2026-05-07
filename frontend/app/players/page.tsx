@@ -144,7 +144,7 @@ export default function PlayersPage() {
             {players
               .map((player) => ({
                 ...player,
-                goals: player.matchPlayers?.reduce((sum: number, mp: any) => sum + (mp.goals || 0), 0) || 0,
+                goals: getPlayerStats(player).goals,
               }))
               .sort((a, b) => b.goals - a.goals)
               .slice(0, 5)
@@ -196,20 +196,19 @@ export default function PlayersPage() {
 
       {!loading && players.length > 0 && (
         <section className="bg-white rounded-lg shadow p-4 md:p-6">
-          <h2 className="text-lg md:text-2xl font-bold text-blue-900 mb-3 md:mb-4">
-            Valoraciones Generales
-          </h2>
+          <h2 className="text-lg md:text-2xl font-bold text-blue-900 mb-3 md:mb-4">Estadísticas Completas</h2>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-xs md:text-sm">
-              <thead>
-                <tr className="border-b-2 border-gray-200">
-                  <th className="text-left p-2 md:p-3 font-semibold text-gray-700">Jugador</th>
-                  <th className="text-center p-2 md:p-3 font-semibold text-gray-700">Partidos</th>
-                  <th className="text-center p-2 md:p-3 font-semibold text-gray-700">Goles</th>
-                  <th className="text-center p-2 md:p-3 font-semibold text-gray-700">Promedio</th>
+            <table className="min-w-full divide-y divide-gray-200 text-xs md:text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                  <th className="px-3 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jugador</th>
+                  <th className="px-3 md:px-6 py-2 md:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Part</th>
+                  <th className="px-3 md:px-6 py-2 md:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Goles</th>
+                  <th className="px-3 md:px-6 py-2 md:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Valo</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {players
                   .map((player) => {
                     const stats = getPlayerStats(player);
@@ -218,24 +217,42 @@ export default function PlayersPage() {
                       stats,
                     };
                   })
-                  .sort((a, b) => {
-                    if (a.stats.rating === null && b.stats.rating === null) return 0;
-                    if (a.stats.rating === null) return 1;
-                    if (b.stats.rating === null) return -1;
-                    return b.stats.rating - a.stats.rating;
-                  })
-                  .map((player, index) => (
-                    <tr key={player.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="p-2 md:p-3 text-gray-800 font-medium">
-                        {index + 1}. {player.name} (#{player.number})
-                      </td>
-                      <td className="p-2 md:p-3 text-center text-gray-700">{player.stats.matches}</td>
-                      <td className="p-2 md:p-3 text-center text-gray-700">{player.stats.goals}</td>
-                      <td className="p-2 md:p-3 text-center font-bold text-blue-700">
-                        {player.stats.rating !== null ? player.stats.rating.toFixed(2) : 'S/N'}
-                      </td>
-                    </tr>
-                  ))}
+                  .sort((a, b) => (b.stats.rating ?? -Infinity) - (a.stats.rating ?? -Infinity))
+                  .map((player) => {
+                    const ratingColor =
+                      player.stats.rating === null
+                        ? 'text-gray-400'
+                        : player.stats.rating >= 8
+                          ? 'text-green-600'
+                          : player.stats.rating >= 6
+                            ? 'text-blue-600'
+                            : player.stats.rating >= 4
+                              ? 'text-yellow-600'
+                              : player.stats.rating > 0
+                                ? 'text-red-600'
+                                : player.stats.rating < 0
+                                  ? 'text-purple-600'
+                                  : 'text-gray-400';
+                    return (
+                      <tr key={player.id} className="hover:bg-gray-50">
+                        <td className="px-3 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900">
+                          {player.number}
+                        </td>
+                        <td className="px-3 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm font-bold text-gray-900 truncate">
+                          {player.name}
+                        </td>
+                        <td className="px-3 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-center text-blue-600 font-semibold">
+                          {player.stats.matches}
+                        </td>
+                        <td className="px-3 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-center text-green-600 font-semibold">
+                          {player.stats.goals}
+                        </td>
+                        <td className={`px-3 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-center font-bold ${ratingColor}`}>
+                          {player.stats.rating !== null ? player.stats.rating.toFixed(2) : '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
