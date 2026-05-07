@@ -170,42 +170,44 @@ export default function AdminPlayerManagement() {
       />
 
       <div>
-        <h3 className="text-lg font-semibold mb-4">
+        <h3 className="text-lg md:text-xl font-semibold mb-4">
           {editingId ? 'Editar Jugador' : 'Agregar Jugador'}
         </h3>
 
-        <form onSubmit={handleAddOrUpdate} className="space-y-4 max-w-md">
-          <div>
-            <label className="block text-sm font-medium mb-1">Nombre del Jugador</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Ej: Juan Pérez"
-              className="w-full p-2 border rounded"
-            />
+        <form onSubmit={handleAddOrUpdate} className="space-y-3 md:space-y-4 max-w-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs md:text-sm font-medium mb-2">Nombre del Jugador</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Ej: Juan Pérez"
+                className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs md:text-sm font-medium mb-2">Dorsal (Número)</label>
+              <input
+                type="number"
+                name="number"
+                value={formData.number}
+                onChange={handleChange}
+                placeholder="1-99"
+                min="1"
+                max="99"
+                className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base [appearance:textfield]"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Dorsal (Número)</label>
-            <input
-              type="number"
-              name="number"
-              value={formData.number}
-              onChange={handleChange}
-              placeholder="1-99"
-              min="1"
-              max="99"
-              className="w-full p-2 border rounded"
-            />
-          </div>
-
-          <div className="flex gap-2">
+          <div className="flex flex-col md:flex-row gap-3">
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-green-600 text-white p-2 rounded font-medium hover:bg-green-700 disabled:opacity-50"
+              className="flex-1 md:flex-auto bg-green-600 text-white px-6 py-3 md:py-2 rounded font-medium text-sm md:text-base hover:bg-green-700 disabled:opacity-50 transition"
             >
               {loading ? 'Guardando...' : editingId ? 'Actualizar Jugador' : 'Agregar Jugador'}
             </button>
@@ -213,7 +215,7 @@ export default function AdminPlayerManagement() {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="flex-1 bg-gray-400 text-white p-2 rounded font-medium hover:bg-gray-500"
+                className="flex-1 md:flex-auto bg-gray-400 text-white px-6 py-3 md:py-2 rounded font-medium text-sm md:text-base hover:bg-gray-500 transition"
               >
                 Cancelar
               </button>
@@ -223,39 +225,39 @@ export default function AdminPlayerManagement() {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-4">Plantilla Actual ({players.length})</h3>
-        <div className="flex flex-wrap gap-2 mb-4">
+        <h3 className="text-lg md:text-xl font-semibold mb-4">Plantilla Actual ({players.length})</h3>
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
           <button
             type="button"
             onClick={handleClearRatings}
             disabled={loading}
-            className="bg-red-600 text-white px-3 py-2 rounded text-xs font-medium hover:bg-red-700 disabled:opacity-50"
+            className="w-full md:w-auto bg-red-600 text-white px-4 py-2 md:py-2 rounded text-xs md:text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition"
           >
             Borrar todas las valoraciones
           </button>
-          <p className="text-xs text-gray-500 self-center">
+          <p className="text-xs md:text-sm text-gray-600 flex-1">
             Esto permite eliminar jugadores con valoraciones previas.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {players.map(player => (
-            <div key={player.id} className={`p-4 border rounded ${editingId === player.id ? 'bg-blue-50 border-blue-300' : 'bg-gray-50'}`}>
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex-1">
-                  <p className="font-medium">{player.name}</p>
-                  <p className="text-sm text-gray-500">Dorsal #{player.number}</p>
+            <div key={player.id} className={`p-4 border rounded transition-colors ${editingId === player.id ? 'bg-blue-50 border-blue-300' : 'bg-gray-50'}`}>
+              <div className="flex flex-col md:flex-row justify-between items-start gap-3 mb-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm md:text-base text-gray-900">{player.name}</p>
+                  <p className="text-xs md:text-sm text-gray-500 mt-1">Dorsal #{player.number}</p>
                 </div>
-                <div className="flex gap-1">
+                <div className="w-full md:w-auto flex gap-2">
                   <button
                     onClick={() => handleEdit(player)}
-                    className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
+                    className="flex-1 md:flex-none text-white bg-blue-600 hover:bg-blue-700 text-xs md:text-sm px-3 md:px-4 py-2 rounded font-medium transition disabled:opacity-50"
                     disabled={loading}
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(player.id)}
-                    className="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
+                    className="flex-1 md:flex-none text-white bg-red-600 hover:bg-red-700 text-xs md:text-sm px-3 md:px-4 py-2 rounded font-medium transition disabled:opacity-50"
                     disabled={loading}
                   >
                     Eliminar
@@ -266,7 +268,7 @@ export default function AdminPlayerManagement() {
           ))}
         </div>
         {players.length === 0 && (
-          <p className="text-gray-500">No hay jugadores registrados</p>
+          <p className="text-gray-500 text-center py-8 text-xs md:text-sm">No hay jugadores registrados</p>
         )}
       </div>
     </div>

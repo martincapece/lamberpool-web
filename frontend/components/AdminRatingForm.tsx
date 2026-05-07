@@ -359,15 +359,15 @@ export default function AdminRatingForm() {
         }}
       />
 
-      <h3 className="text-lg font-semibold">Valoraciones de Jueces</h3>
+      <h3 className="text-lg md:text-xl font-semibold">Valoraciones de Jueces</h3>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Selecciona Partido</label>
+        <label className="block text-xs md:text-sm font-medium mb-2">Selecciona Partido</label>
         <select
           value={selectedMatch}
           onChange={(e) => setSelectedMatch(e.target.value)}
           required
-          className="w-full p-2 border rounded"
+          className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
         >
           <option value="">Elige un partido</option>
           {matches.map(m => (
@@ -381,9 +381,9 @@ export default function AdminRatingForm() {
       {selectedMatch && (
         <>
           {/* Guest Judges Section */}
-          <div className="space-y-3 p-4 border rounded bg-amber-50">
-            <h4 className="text-sm font-semibold text-amber-900">Jueces Invitados</h4>
-            <p className="text-xs text-amber-700">
+          <div className="space-y-3 p-4 md:p-6 border rounded bg-amber-50">
+            <h4 className="text-xs md:text-sm font-semibold text-amber-900">Jueces Invitados</h4>
+            <p className="text-[10px] md:text-xs text-amber-700">
               Agrega jueces temporales para este partido. Sus valoraciones tendrán la misma validez que los jueces principales.
             </p>
             
@@ -391,12 +391,12 @@ export default function AdminRatingForm() {
             {guestJudges.length > 0 && (
               <div className="space-y-2">
                 {guestJudges.map(gj => (
-                  <div key={gj.id} className="flex items-center justify-between bg-white p-2 rounded border">
-                    <span className="text-sm font-medium">{gj.name}</span>
+                  <div key={gj.id} className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-white p-3 md:p-4 rounded border">
+                    <span className="text-xs md:text-sm font-medium text-gray-900 flex-1 break-words">{gj.name}</span>
                     <button
                       type="button"
                       onClick={() => handleDeleteGuestJudge(gj.id, gj.name)}
-                      className="text-red-600 hover:text-red-800 text-xs px-2 py-1 rounded hover:bg-red-50"
+                      className="w-full md:w-auto text-white bg-red-600 hover:bg-red-700 text-xs px-3 py-2 md:px-4 md:py-2 rounded hover:bg-red-50 transition font-medium"
                     >
                       Eliminar
                     </button>
@@ -406,7 +406,7 @@ export default function AdminRatingForm() {
             )}
             
             {/* Add new guest judge */}
-            <div className="flex gap-2">
+            <div className="flex flex-col md:flex-row gap-3">
               <input
                 type="text"
                 value={newGuestJudgeName}
@@ -420,13 +420,13 @@ export default function AdminRatingForm() {
                   }
                 }}
                 placeholder="Nombre del juez invitado"
-                className="flex-1 p-2 border rounded text-sm"
+                className="flex-1 px-4 py-3 md:py-2 border rounded text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 type="button"
                 onClick={handleAddGuestJudge}
                 disabled={addingGuestJudge || !newGuestJudgeName.trim()}
-                className="bg-amber-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+                className="w-full md:w-auto bg-amber-600 text-white px-4 py-3 md:py-2 rounded text-xs md:text-sm font-medium hover:bg-amber-700 disabled:opacity-50 transition"
               >
                 {addingGuestJudge ? 'Añadiendo...' : 'Agregar Juez'}
               </button>
@@ -443,21 +443,21 @@ export default function AdminRatingForm() {
 
           {/* Photos Gallery */}
           {photos.length > 0 && (
-            <div className="space-y-3 p-4 border rounded bg-gray-50">
-              <h4 className="text-sm font-semibold text-gray-800">Fotos del Partido ({photos.length})</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="space-y-3 p-4 md:p-6 border rounded bg-gray-50">
+              <h4 className="text-xs md:text-sm font-semibold text-gray-800">Fotos del Partido ({photos.length})</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 {photos.map(photo => (
-                  <div key={photo.id} className="relative group">
+                  <div key={photo.id} className="relative group aspect-square">
                     <img
                       src={photo.url}
                       alt="Match photo"
-                      className="w-full h-32 object-cover rounded border"
+                      className="w-full h-full object-cover rounded border"
                     />
                     <button
                       type="button"
                       onClick={() => handleDeletePhoto(photo.id)}
                       disabled={deletingPhoto === photo.id}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                     >
                       ✕
                     </button>
@@ -468,12 +468,12 @@ export default function AdminRatingForm() {
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1">Selecciona Jugador</label>
+            <label className="block text-xs md:text-sm font-medium mb-2">Selecciona Jugador</label>
             <select
               value={selectedPlayer}
               onChange={(e) => setSelectedPlayer(e.target.value)}
               required
-              className="w-full p-2 border rounded"
+              className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             >
               <option value="">Elige un jugador</option>
               {matchPlayers.map(mp => (
@@ -490,42 +490,42 @@ export default function AdminRatingForm() {
 
       {selectedPlayer && (
         <div className="space-y-4">
-          <div className="bg-blue-50 p-4 rounded border-l-4 border-blue-600">
-            <p className="text-sm mb-2">
+          <div className="bg-blue-50 p-4 md:p-6 rounded border-l-4 border-blue-600 space-y-2">
+            <p className="text-xs md:text-sm mb-2">
               <span className="font-medium">{selectedPlayerData?.player.name}</span>
               {' '}({'posición: ' + selectedPlayerData?.position}) - {selectedMatchData?.opponent}
             </p>
             {(Object.values(ratings).filter(r => r).length > 0 || Object.values(guestRatings).filter(r => r).length > 0) ? (
-              <p className="text-xs text-blue-700 font-semibold">
+              <p className="text-[10px] md:text-xs text-blue-700 font-semibold">
                 ✓ {Object.values(ratings).filter(r => r).length + Object.values(guestRatings).filter(r => r).length} valoración(es) en progreso
               </p>
             ) : (
-              <p className="text-xs text-blue-700">
+              <p className="text-[10px] md:text-xs text-blue-700">
                 Sin valoraciones previas - ingresa las nuevas
               </p>
             )}
           </div>
 
           {/* Goals and Cards Section */}
-          <div className="p-4 border rounded bg-gray-50 space-y-3">
-            <h4 className="font-medium text-sm">Estadísticas del Partido</h4>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 md:p-6 border rounded bg-gray-50 space-y-3 md:space-y-4">
+            <h4 className="font-medium text-sm md:text-base">Estadísticas del Partido</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Goles</label>
+                <label className="block text-xs md:text-sm font-medium mb-2">Goles</label>
                 <input
                   type="number"
                   value={goals}
                   onChange={(e) => setGoals(parseInt(e.target.value) || 0)}
                   min="0"
-                  className="w-full p-2 border rounded"
+                  className="w-full px-4 py-3 md:py-2 border rounded text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Tarjetas</label>
+                <label className="block text-xs md:text-sm font-medium mb-2">Tarjetas</label>
                 <select
                   value={cards}
                   onChange={(e) => setCards(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full px-4 py-3 md:py-2 border rounded text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Sin tarjetas</option>
                   <option value="Y">Amarilla (Y)</option>
@@ -536,57 +536,63 @@ export default function AdminRatingForm() {
             </div>
           </div>
 
-          <div className="space-y-3">
-            <h4 className="font-medium text-sm">Jueces Principales</h4>
-            {judges.map(judge => (
-              <div key={judge.id} className={`p-3 border rounded ${ratings[judge.id] ? 'bg-green-50 border-green-300' : 'bg-gray-50'}`}>
-                <label className="block text-sm font-medium mb-2">
-                  {judge.name}
-                </label>
-                <input
-                  type="number"
-                  value={ratings[judge.id] || ''}
-                  onChange={(e) => handleRatingChange(judge.id, e.target.value)}
-                  min="-10"
-                  max="10"
-                  step="0.5"
-                  placeholder="Ej: 8.5"
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-            ))}
+          <div className="space-y-4">
+            <h4 className="font-medium text-sm md:text-base">Jueces Principales</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+              {judges.map(judge => (
+                <div key={judge.id} className={`p-3 border rounded transition-colors ${ratings[judge.id] ? 'bg-green-50 border-green-300' : 'bg-gray-50'}`}>
+                  <label className="block text-xs md:text-sm font-medium mb-2 text-gray-900">
+                    {judge.name}
+                  </label>
+                  <input
+                    type="number"
+                    value={ratings[judge.id] || ''}
+                    onChange={(e) => handleRatingChange(judge.id, e.target.value)}
+                    min="-10"
+                    max="10"
+                    step="0.5"
+                    placeholder="Ej: 8.5"
+                    className="w-full px-4 py-3 md:py-2 border rounded text-sm md:text-base [appearance:textfield] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-[10px] md:text-xs text-gray-500 mt-2">Incluye .5</p>
+                </div>
+              ))}
+            </div>
             
             {/* Guest Judges Ratings */}
             {guestJudges.length > 0 && (
               <>
-                <h4 className="font-medium text-sm mt-4 text-amber-900">Jueces Invitados</h4>
-                {guestJudges.map(guestJudge => (
-                  <div key={guestJudge.id} className={`p-3 border rounded ${guestRatings[guestJudge.id] ? 'bg-amber-50 border-amber-300' : 'bg-gray-50'}`}>
-                    <label className="block text-sm font-medium mb-2">
-                      {guestJudge.name}
-                      <span className="ml-2 text-xs text-amber-600">(invitado)</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={guestRatings[guestJudge.id] || ''}
-                      onChange={(e) => handleGuestRatingChange(guestJudge.id, e.target.value)}
-                      min="-10"
-                      max="10"
-                      step="0.5"
-                      placeholder="Ej: 8.5"
-                      className="w-full p-2 border rounded"
-                    />
-                  </div>
-                ))}
+                <h4 className="font-medium text-sm md:text-base mt-6 text-amber-900">Jueces Invitados</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+                  {guestJudges.map(guestJudge => (
+                    <div key={guestJudge.id} className={`p-3 border rounded transition-colors ${guestRatings[guestJudge.id] ? 'bg-amber-50 border-amber-300' : 'bg-gray-50'}`}>
+                      <label className="block text-xs md:text-sm font-medium mb-2 text-gray-900">
+                        {guestJudge.name}
+                        <span className="ml-1 text-[10px] md:text-xs text-amber-600 font-normal">(inv.)</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={guestRatings[guestJudge.id] || ''}
+                        onChange={(e) => handleGuestRatingChange(guestJudge.id, e.target.value)}
+                        min="-10"
+                        max="10"
+                        step="0.5"
+                        placeholder="Ej: 8.5"
+                        className="w-full px-4 py-3 md:py-2 border rounded text-sm md:text-base [appearance:textfield] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="text-[10px] md:text-xs text-gray-500 mt-2">Incluye .5</p>
+                    </div>
+                  ))}
+                </div>
               </>
             )}
           </div>
 
-          <div className="bg-gray-100 p-3 rounded">
-            <p className="text-sm">
-              <span className="font-semibold">Promedio de Valoración:</span> {calculateAverage()}/10
+          <div className="bg-gray-100 p-4 md:p-6 rounded">
+            <p className="text-xs md:text-sm font-semibold">
+              Promedio de Valoración: <span className="text-lg md:text-xl">{calculateAverage()}/10</span>
               {(Object.values(ratings).filter(r => r).length > 0 || Object.values(guestRatings).filter(r => r).length > 0) && (
-                <span className="text-xs text-gray-600 ml-2">
+                <span className="text-[10px] md:text-xs text-gray-600 ml-2 block md:inline-block mt-1 md:mt-0">
                   ({Object.values(ratings).filter(r => r).length + Object.values(guestRatings).filter(r => r).length} jueces)
                 </span>
               )}
@@ -596,7 +602,7 @@ export default function AdminRatingForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white p-2 rounded font-medium hover:bg-indigo-700 disabled:opacity-50"
+            className="w-full px-6 py-3 md:py-2 bg-indigo-600 text-white rounded font-medium text-sm md:text-base hover:bg-indigo-700 disabled:opacity-50 transition"
           >
             {loading ? 'Guardando...' : 'Guardar Valoraciones'}
           </button>

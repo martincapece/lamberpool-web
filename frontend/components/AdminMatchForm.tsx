@@ -503,61 +503,64 @@ export default function AdminMatchForm() {
         onClose={() => setFeedback(null)}
       />
 
-      <h3 className="text-lg font-semibold">Crear Partido</h3>
+      <h3 className="text-lg md:text-xl font-semibold">Crear Partido</h3>
 
-      {error && <div className="rounded bg-red-100 p-3 text-red-700">{error}</div>}
+      {error && <div className="rounded bg-red-100 p-3 md:p-4 text-red-700 text-xs md:text-sm">{error}</div>}
 
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h4 className="text-md font-semibold text-amber-900">Estado del partido</h4>
-            <p className="text-sm text-amber-800">
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 md:p-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex-1">
+            <h4 className="text-base md:text-md font-semibold text-amber-900">Estado del partido</h4>
+            <p className="text-xs md:text-sm text-amber-800 mt-1">
               Si fue cancelado, selecciona al equipo favorecido y el sistema asignará un 3-0 automáticamente.
             </p>
           </div>
-          <input
-            type="checkbox"
-            checked={isCanceledMatch}
-            onChange={(event) => updateFormData('status', event.target.checked ? 'CANCELED' : 'PLAYED')}
-            className="h-5 w-5"
-          />
+          <label className="flex items-center gap-2 cursor-pointer mt-2 md:mt-0">
+            <input
+              type="checkbox"
+              checked={isCanceledMatch}
+              onChange={(event) => updateFormData('status', event.target.checked ? 'CANCELED' : 'PLAYED')}
+              className="h-5 w-5 cursor-pointer"
+            />
+            <span className="text-xs md:text-sm font-medium text-amber-900">Cancelado</span>
+          </label>
         </div>
 
         {isCanceledMatch && (
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Equipo favorecido</label>
+              <label className="mb-2 block text-xs md:text-sm font-medium text-gray-700">Equipo favorecido</label>
               <select
                 value={formData.awardedTo}
                 onChange={(event) => updateFormData('awardedTo', event.target.value)}
-                className="w-full rounded border p-2"
+                className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
               >
                 <option value="LAMBERPOOL">Lamberpool FC</option>
                 <option value="OPPONENT">Rival</option>
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Detalle de la cancelacion</label>
+              <label className="mb-2 block text-xs md:text-sm font-medium text-gray-700">Detalle de la cancelacion</label>
               <input
                 type="text"
                 value={formData.cancelReason}
                 onChange={(event) => updateFormData('cancelReason', event.target.value)}
                 placeholder="Ej: rival no se presento"
-                className="w-full rounded border p-2"
+                className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
               />
             </div>
           </div>
         )}
       </div>
 
-      <div className="rounded-lg bg-gray-50 p-6">
-        <h4 className="text-md font-semibold mb-4">Paso 1: Selecciona Torneo</h4>
+      <div className="rounded-lg bg-gray-50 p-4 md:p-6 border-b-4 border-blue-200">
+        <h4 className="text-base md:text-md font-semibold mb-4">🔹 Paso 1: Selecciona Torneo</h4>
         <div>
-          <label className="mb-1 block text-sm font-medium">Torneo</label>
+          <label className="mb-2 block text-xs md:text-sm font-medium">Torneo</label>
           <select
             value={selectedTournament}
             onChange={(event) => setSelectedTournament(event.target.value)}
-            className="w-full rounded border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           >
             <option value="">Selecciona un torneo</option>
             {tournaments.map((tournament) => (
@@ -568,14 +571,14 @@ export default function AdminMatchForm() {
       </div>
 
       {selectedTournament && (
-        <div className="rounded-lg bg-gray-50 p-6">
-          <h4 className="text-md font-semibold mb-4">Paso 2: Selecciona Temporada</h4>
+        <div className="rounded-lg bg-gray-50 p-4 md:p-6 border-b-4 border-blue-200">
+          <h4 className="text-base md:text-md font-semibold mb-4">🔹 Paso 2: Selecciona Temporada</h4>
           <div>
-            <label className="mb-1 block text-sm font-medium">Temporada (Año)</label>
+            <label className="mb-2 block text-xs md:text-sm font-medium">Temporada (Año)</label>
             <select
               value={selectedSeason}
               onChange={(event) => setSelectedSeason(event.target.value)}
-              className="w-full rounded border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             >
               <option value="">Selecciona una temporada</option>
               {seasons.map((season) => (
@@ -588,27 +591,27 @@ export default function AdminMatchForm() {
 
       {selectedSeason && (
         <div className="space-y-4">
-          <div className="rounded-lg bg-gray-50 p-6">
-            <h4 className="text-md font-semibold mb-4">Paso 3: Selecciona o crea competencia</h4>
+          <div className="rounded-lg bg-gray-50 p-4 md:p-6 border-b-4 border-blue-200">
+            <h4 className="text-base md:text-md font-semibold mb-4">🔹 Paso 3: Selecciona o crea competencia</h4>
             <div className="mb-4">
-              <label className="mb-1 block text-sm font-medium">Competiciones existentes</label>
+              <label className="mb-2 block text-xs md:text-sm font-medium">Competiciones existentes</label>
               {loadingCompetitions ? (
-                <p className="text-sm text-gray-500">Cargando...</p>
+                <p className="text-xs md:text-sm text-gray-500">Cargando...</p>
               ) : competitions.length === 0 ? (
-                <p className="text-sm text-gray-500">No hay competiciones en esta temporada aún.</p>
+                <p className="text-xs md:text-sm text-gray-500">No hay competiciones en esta temporada aún.</p>
               ) : (
                 <div className="space-y-2">
                   {competitions.map((competition) => (
-                    <label key={competition.id} className="flex cursor-pointer items-center rounded border bg-white p-2 hover:bg-blue-50">
+                    <label key={competition.id} className="flex cursor-pointer items-center gap-3 rounded border bg-white p-3 md:p-2 hover:bg-blue-50">
                       <input
                         type="radio"
                         name="competition"
                         value={competition.id}
                         checked={selectedCompetition === competition.id}
                         onChange={(event) => setSelectedCompetition(event.target.value)}
-                        className="h-4 w-4 text-blue-600"
+                        className="h-4 w-4 text-blue-600 cursor-pointer"
                       />
-                      <span className="ml-2 text-sm">{competition.name}</span>
+                      <span className="text-xs md:text-sm font-medium">{competition.name}</span>
                     </label>
                   ))}
                 </div>
@@ -616,22 +619,22 @@ export default function AdminMatchForm() {
             </div>
 
             <div className="border-t pt-4">
-              <h5 className="mb-3 text-sm font-semibold">O crea una nueva competencia</h5>
+              <h5 className="mb-3 text-xs md:text-sm font-semibold">O crea una nueva competencia</h5>
               <form onSubmit={handleCreateCompetition} className="space-y-3">
                 <div>
-                  <label className="mb-1 block text-sm font-medium">Nombre de competencia</label>
+                  <label className="mb-2 block text-xs md:text-sm font-medium">Nombre de competencia</label>
                   <input
                     type="text"
                     value={competitionForm.name}
                     onChange={(event) => setCompetitionForm({ ...competitionForm, name: event.target.value })}
                     placeholder="Ej: Fase Regular, Playoff, Final"
-                    className="w-full rounded border p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm md:text-base"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading || !competitionForm.seasonId}
-                  className="w-full rounded bg-purple-600 p-2 font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+                  className="w-full px-6 py-3 md:py-2 bg-purple-600 text-white rounded font-medium text-sm md:text-base hover:bg-purple-700 disabled:opacity-50 transition"
                 >
                   {loading ? 'Creando...' : 'Crear Competencia'}
                 </button>
@@ -642,23 +645,23 @@ export default function AdminMatchForm() {
       )}
 
       {selectedCompetition && !isCanceledMatch && (
-        <div className="rounded-lg bg-gray-50 p-6 space-y-4">
-          <h4 className="text-md font-semibold mb-2">Paso 4: Jugadores convocados</h4>
-          <p className="text-sm text-gray-600">Selecciona los jugadores que participaron, incluidos suplentes.</p>
+        <div className="rounded-lg bg-gray-50 p-4 md:p-6 border-b-4 border-blue-200 space-y-4">
+          <h4 className="text-base md:text-md font-semibold mb-2">🔹 Paso 4: Jugadores convocados</h4>
+          <p className="text-xs md:text-sm text-gray-600">Selecciona los jugadores que participaron, incluidos suplentes.</p>
 
           {players.length === 0 ? (
-            <p className="text-sm text-gray-500">No hay jugadores cargados en el equipo.</p>
+            <p className="text-xs md:text-sm text-gray-500">No hay jugadores cargados en el equipo.</p>
           ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {players.map((player) => (
-                <label key={player.id} className="flex items-center gap-2 rounded border bg-white p-3">
+                <label key={player.id} className="flex items-center gap-3 rounded border bg-white p-3 cursor-pointer hover:bg-blue-50">
                   <input
                     type="checkbox"
                     checked={Boolean(selectedParticipants[player.id])}
                     onChange={() => toggleParticipant(player.id)}
-                    className="h-4 w-4"
+                    className="h-4 w-4 cursor-pointer"
                   />
-                  <span className="text-sm font-medium">
+                  <span className="text-xs md:text-sm font-medium">
                     #{player.number} - {player.name}
                   </span>
                 </label>
@@ -669,17 +672,17 @@ export default function AdminMatchForm() {
       )}
 
       {selectedCompetition && !isCanceledMatch && (
-        <div className="rounded-lg bg-gray-50 p-6 space-y-4">
-          <h4 className="text-md font-semibold mb-2">Paso 5: Formacion y posiciones</h4>
+        <div className="rounded-lg bg-gray-50 p-4 md:p-6 border-b-4 border-blue-200 space-y-4">
+          <h4 className="text-base md:text-md font-semibold mb-2">🔹 Paso 5: Formacion y posiciones</h4>
           <div className="max-w-xs">
-            <label className="mb-1 block text-sm font-medium">Formacion</label>
+            <label className="mb-2 block text-xs md:text-sm font-medium">Formacion</label>
             <select
               value={formationKey}
               onChange={(event) => {
                 setFormationKey(event.target.value as FormationKey);
                 setSlotAssignments({});
               }}
-              className="w-full rounded border p-2"
+              className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             >
               <option value="2-4-1">2-4-1</option>
               <option value="3-3-1">3-3-1</option>
@@ -697,7 +700,7 @@ export default function AdminMatchForm() {
                     <select
                       value={assigned}
                       onChange={(event) => handleAssign(slot.id, event.target.value)}
-                      className="w-full rounded border p-2 text-sm"
+                      className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"
                     >
                       <option value="">Sin asignar</option>
                       {selectedPlayers.map((player) => (
@@ -716,7 +719,7 @@ export default function AdminMatchForm() {
             </div>
 
             <div className="space-y-2">
-              <h5 className="text-sm font-bold uppercase tracking-wide text-green-800">Defensas</h5>
+              <h5 className="text-xs md:text-sm font-bold uppercase tracking-wide text-green-800">Defensas</h5>
               <div className="grid grid-cols-1 gap-2">
                 {slots.filter((slot) => slot.id.startsWith('DEF_')).map((slot) => {
                   const assigned = slotAssignments[slot.id] || '';
@@ -726,7 +729,7 @@ export default function AdminMatchForm() {
                       <select
                         value={assigned}
                         onChange={(event) => handleAssign(slot.id, event.target.value)}
-                        className="w-full rounded border p-2 text-sm"
+                        className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"
                       >
                         <option value="">Sin asignar</option>
                         {selectedPlayers.map((player) => (
@@ -746,7 +749,7 @@ export default function AdminMatchForm() {
             </div>
 
             <div className="space-y-2">
-              <h5 className="text-sm font-bold uppercase tracking-wide text-yellow-800">Mediocampistas</h5>
+              <h5 className="text-xs md:text-sm font-bold uppercase tracking-wide text-yellow-800">Mediocampistas</h5>
               <div className="grid grid-cols-1 gap-2">
                 {slots.filter((slot) => slot.id.startsWith('MID_')).map((slot) => {
                   const assigned = slotAssignments[slot.id] || '';
@@ -756,7 +759,7 @@ export default function AdminMatchForm() {
                       <select
                         value={assigned}
                         onChange={(event) => handleAssign(slot.id, event.target.value)}
-                        className="w-full rounded border p-2 text-sm"
+                        className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"
                       >
                         <option value="">Sin asignar</option>
                         {selectedPlayers.map((player) => (
@@ -776,7 +779,7 @@ export default function AdminMatchForm() {
             </div>
 
             <div className="space-y-2">
-              <h5 className="text-sm font-bold uppercase tracking-wide text-red-800">Ataque</h5>
+              <h5 className="text-xs md:text-sm font-bold uppercase tracking-wide text-red-800">Ataque</h5>
               {slots.filter((slot) => slot.id.startsWith('FWD')).map((slot) => {
                 const assigned = slotAssignments[slot.id] || '';
                 return (
@@ -785,7 +788,7 @@ export default function AdminMatchForm() {
                     <select
                       value={assigned}
                       onChange={(event) => handleAssign(slot.id, event.target.value)}
-                      className="w-full rounded border p-2 text-sm"
+                      className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"
                     >
                       <option value="">Sin asignar</option>
                       {selectedPlayers.map((player) => (

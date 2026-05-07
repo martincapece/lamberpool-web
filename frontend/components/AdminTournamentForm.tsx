@@ -259,40 +259,40 @@ export default function AdminTournamentForm() {
       {success && <div className="p-3 bg-green-100 text-green-700 rounded">{success}</div>}
 
       {/* Create Tournament */}
-      <div className="bg-gray-50 p-6 rounded-lg">
-        <h4 className="text-md font-semibold mb-4">Crear Nuevo Torneo</h4>
-        <form onSubmit={handleCreateTournament} className="space-y-4 max-w-md">
+      <section className="rounded-lg bg-gray-50 p-4 md:p-6 mb-8 pb-8 border-b-4 border-blue-200">
+        <h4 className="text-base md:text-md font-semibold mb-4">🔹 Paso 1: Crear Torneo</h4>
+        <form onSubmit={handleCreateTournament} className="space-y-3 md:space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Nombre del Torneo</label>
+            <label className="block text-xs md:text-sm font-medium mb-2">Nombre del Torneo</label>
             <input
               type="text"
               value={tournamentForm.name}
               onChange={(e) => setTournamentForm({ name: e.target.value })}
               placeholder="Ej: Liga Nuñez - Tercera División"
-              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white p-2 rounded font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="w-full md:w-auto px-6 py-3 md:py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 disabled:opacity-50 transition text-sm md:text-base"
           >
             {loading ? 'Creando...' : 'Crear Torneo'}
           </button>
         </form>
-        <div className="mt-4">
-          <p className="text-sm font-medium text-gray-700 mb-2">Torneos existentes:</p>
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <p className="text-xs md:text-sm font-medium text-gray-700 mb-3">Torneos existentes:</p>
           {tournaments.length === 0 ? (
-            <p className="text-sm text-gray-500">No hay torneos aún</p>
+            <p className="text-xs md:text-sm text-gray-500">No hay torneos aún</p>
           ) : (
-            <ul className="space-y-1">
+            <ul className="space-y-2">
               {tournaments.map(t => (
-                <li key={t.id} className="flex items-center justify-between gap-3 rounded border bg-white p-2 text-sm">
-                  <span>{t.name}</span>
+                <li key={t.id} className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 rounded border bg-white p-3 text-xs md:text-sm">
+                  <span className="font-medium flex-1 break-words">{t.name}</span>
                   <button
                     type="button"
                     onClick={() => handleDeleteTournament(t.id, t.name)}
-                    className="rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700"
+                    className="w-full md:w-auto rounded bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-700 transition"
                   >
                     Eliminar
                   </button>
@@ -301,56 +301,58 @@ export default function AdminTournamentForm() {
             </ul>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Create Season */}
       {tournaments.length > 0 ? (
-        <div className="bg-gray-50 p-6 rounded-lg">
-          <h4 className="text-md font-semibold mb-4">Crear Nueva Temporada</h4>
-          <form onSubmit={handleCreateSeason} className="space-y-4 max-w-md">
-            <div>
-              <label className="block text-sm font-medium mb-1">Torneo</label>
-              <select
-                value={seasonForm.tournamentId}
-                onChange={(e) => setSeasonForm({ ...seasonForm, tournamentId: e.target.value })}
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecciona un torneo</option>
-                {tournaments.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Año</label>
-              <input
-                type="number"
-                value={seasonForm.year}
-                onChange={(e) => setSeasonForm({ ...seasonForm, year: parseInt(e.target.value) })}
-                min="2000"
-                max="2100"
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+        <section className="rounded-lg bg-gray-50 p-4 md:p-6 mb-8 pb-8 border-b-4 border-blue-200">
+          <h4 className="text-base md:text-md font-semibold mb-4">🔹 Paso 2: Crear Temporada</h4>
+          <form onSubmit={handleCreateSeason} className="space-y-3 md:space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs md:text-sm font-medium mb-2">Torneo</label>
+                <select
+                  value={seasonForm.tournamentId}
+                  onChange={(e) => setSeasonForm({ ...seasonForm, tournamentId: e.target.value })}
+                  className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecciona un torneo</option>
+                  {tournaments.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs md:text-sm font-medium mb-2">Año</label>
+                <input
+                  type="number"
+                  value={seasonForm.year}
+                  onChange={(e) => setSeasonForm({ ...seasonForm, year: parseInt(e.target.value) })}
+                  min="2000"
+                  max="2100"
+                  className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
             <button
               type="submit"
               disabled={loading || !seasonForm.tournamentId}
-              className="w-full bg-green-600 text-white p-2 rounded font-medium hover:bg-green-700 disabled:opacity-50"
+              className="w-full md:w-auto px-6 py-3 md:py-2 bg-green-600 text-white rounded font-medium hover:bg-green-700 disabled:opacity-50 transition text-sm md:text-base"
             >
               {loading ? 'Creando...' : 'Crear Temporada'}
             </button>
           </form>
           {seasonForm.tournamentId && (
-            <div className="mt-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">Temporadas existentes:</p>
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <p className="text-xs md:text-sm font-medium text-gray-700 mb-3">Temporadas existentes:</p>
               {loadingSeasons ? (
-                <p className="text-sm text-gray-500">Cargando...</p>
+                <p className="text-xs md:text-sm text-gray-500">Cargando...</p>
               ) : seasons.length === 0 ? (
-                <p className="text-sm text-gray-500">No hay temporadas en este torneo aún</p>
+                <p className="text-xs md:text-sm text-gray-500">No hay temporadas en este torneo aún</p>
               ) : (
-                <ul className="space-y-1">
+                <ul className="space-y-2">
                   {seasons.map(s => (
-                    <li key={s.id} className="text-sm bg-white p-2 rounded border">
+                    <li key={s.id} className="text-xs md:text-sm bg-white p-3 rounded border font-medium">
                       {s.year}
                     </li>
                   ))}
@@ -358,10 +360,10 @@ export default function AdminTournamentForm() {
               )}
             </div>
           )}
-        </div>
+        </section>
       ) : (
-        <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-600">
-          <p className="text-sm text-yellow-800">
+        <div className="rounded-lg border-l-4 border-yellow-600 bg-yellow-50 p-4">
+          <p className="text-xs md:text-sm text-yellow-800">
             <span className="font-semibold">📌 Paso 1:</span> Primero crea un torneo arriba para poder crear temporadas.
           </p>
         </div>
@@ -369,51 +371,53 @@ export default function AdminTournamentForm() {
 
       {/* Create Competition */}
       {seasons.length > 0 ? (
-        <div className="bg-gray-50 p-6 rounded-lg">
-          <h4 className="text-md font-semibold mb-4">Crear Nueva Competición</h4>
-          <form onSubmit={handleCreateCompetition} className="space-y-4 max-w-md">
-            <div>
-              <label className="block text-sm font-medium mb-1">Temporada</label>
-              <select
-                value={competitionForm.seasonId}
-                onChange={(e) => setCompetitionForm({ ...competitionForm, seasonId: e.target.value })}
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecciona una temporada</option>
-                {seasons.map(s => (
-                  <option key={s.id} value={s.id}>{s.year}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Nombre de Competición</label>
-              <input
-                type="text"
-                value={competitionForm.name}
-                onChange={(e) => setCompetitionForm({ ...competitionForm, name: e.target.value })}
-                placeholder="Ej: Fase Regular, Instancia Final"
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+        <section className="rounded-lg bg-gray-50 p-4 md:p-6 mb-8 border-b-4 border-blue-200">
+          <h4 className="text-base md:text-md font-semibold mb-4">🔹 Paso 3: Crear Competencia</h4>
+          <form onSubmit={handleCreateCompetition} className="space-y-3 md:space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs md:text-sm font-medium mb-2">Temporada</label>
+                <select
+                  value={competitionForm.seasonId}
+                  onChange={(e) => setCompetitionForm({ ...competitionForm, seasonId: e.target.value })}
+                  className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecciona una temporada</option>
+                  {seasons.map(s => (
+                    <option key={s.id} value={s.id}>{s.year}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs md:text-sm font-medium mb-2">Nombre de Competencia</label>
+                <input
+                  type="text"
+                  value={competitionForm.name}
+                  onChange={(e) => setCompetitionForm({ ...competitionForm, name: e.target.value })}
+                  placeholder="Ej: Fase Regular, Instancia Final"
+                  className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
             <button
               type="submit"
               disabled={loading || !competitionForm.seasonId}
-              className="w-full bg-purple-600 text-white p-2 rounded font-medium hover:bg-purple-700 disabled:opacity-50"
+              className="w-full md:w-auto px-6 py-3 md:py-2 bg-purple-600 text-white rounded font-medium hover:bg-purple-700 disabled:opacity-50 transition text-sm md:text-base"
             >
-              {loading ? 'Creando...' : 'Crear Competición'}
+              {loading ? 'Creando...' : 'Crear Competencia'}
             </button>
           </form>
           {competitionForm.seasonId && (
-            <div className="mt-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">Competiciones existentes:</p>
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <p className="text-xs md:text-sm font-medium text-gray-700 mb-3">Competencias existentes:</p>
               {loadingCompetitions ? (
-                <p className="text-sm text-gray-500">Cargando...</p>
+                <p className="text-xs md:text-sm text-gray-500">Cargando...</p>
               ) : competitions.length === 0 ? (
-                <p className="text-sm text-gray-500">No hay competiciones en esta temporada aún</p>
+                <p className="text-xs md:text-sm text-gray-500">No hay competencias en esta temporada aún</p>
               ) : (
-                <ul className="space-y-1">
+                <ul className="space-y-2">
                   {competitions.map(c => (
-                    <li key={c.id} className="text-sm bg-white p-2 rounded border">
+                    <li key={c.id} className="text-xs md:text-sm bg-white p-3 rounded border font-medium">
                       {c.name}
                     </li>
                   ))}
@@ -421,11 +425,11 @@ export default function AdminTournamentForm() {
               )}
             </div>
           )}
-        </div>
+        </section>
       ) : (
-        <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-600">
-          <p className="text-sm text-yellow-800">
-            <span className="font-semibold">📌 Paso 2:</span> Crea una temporada (año) para poder crear competiciones.
+        <div className="rounded-lg border-l-4 border-yellow-600 bg-yellow-50 p-4">
+          <p className="text-xs md:text-sm text-yellow-800">
+            <span className="font-semibold">📌 Paso 2:</span> Crea una temporada (año) para poder crear competencias.
           </p>
         </div>
       )}

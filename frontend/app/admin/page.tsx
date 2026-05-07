@@ -52,21 +52,21 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200">
-          <nav className="flex space-x-8" aria-label="Tabs">
+        {/* Tabs - Responsive */}
+        <div className="mb-6 border-b border-gray-200 overflow-x-auto">
+          <nav className="flex flex-wrap md:flex-nowrap gap-2 md:gap-8 md:space-x-0" aria-label="Tabs">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`py-3 px-4 md:py-4 md:px-1 border-b-2 font-medium text-xs md:text-sm whitespace-nowrap transition-colors ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
                 <span className="mr-2">{tab.icon}</span>
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </nav>

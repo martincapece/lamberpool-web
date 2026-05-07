@@ -149,9 +149,9 @@ export default function AdminCompetitionsManager() {
         onClose={() => setFeedback(null)}
       />
 
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-2xl font-bold text-gray-900">Gestionar Temporadas y Competencias</h2>
-        <p className="text-sm text-gray-600 mt-1">
+      <div className="p-4 md:p-6 border-b border-gray-200">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900">Gestionar Temporadas y Competencias</h2>
+        <p className="text-xs md:text-sm text-gray-600 mt-1">
           Elimina temporadas o competencias antiguas que ya no necesites
         </p>
       </div>
@@ -162,20 +162,20 @@ export default function AdminCompetitionsManager() {
         </div>
       )}
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         {orphanTournaments.length > 0 && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <h3 className="text-sm font-semibold text-amber-900">Torneos sin temporadas</h3>
-            <p className="mt-1 text-sm text-amber-800">
+            <h3 className="text-xs md:text-sm font-semibold text-amber-900">Torneos sin temporadas</h3>
+            <p className="mt-2 text-xs md:text-sm text-amber-800">
               Estos torneos quedaron sin temporadas activas. Puedes eliminarlos directamente.
             </p>
-            <div className="mt-3 space-y-2">
+            <div className="mt-4 space-y-3">
               {orphanTournaments.map((tournament) => (
-                <div key={tournament.id} className="flex items-center justify-between rounded bg-white px-3 py-2">
-                  <span className="text-sm font-medium text-gray-800">{tournament.name}</span>
+                <div key={tournament.id} className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 rounded bg-white px-4 py-3">
+                  <span className="text-xs md:text-sm font-medium text-gray-800 flex-1 break-words">{tournament.name}</span>
                   <button
                     onClick={() => handleDeleteTournament(tournament.id, tournament.name)}
-                    className="rounded bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                    className="w-full md:w-auto rounded bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-700 transition"
                   >
                     Eliminar torneo
                   </button>
@@ -186,24 +186,24 @@ export default function AdminCompetitionsManager() {
         )}
 
         {seasons.length === 0 && (
-          <p className="text-gray-500 text-center py-8">No hay temporadas registradas</p>
+          <p className="text-gray-500 text-center py-8 text-xs md:text-sm">No hay temporadas registradas</p>
         )}
 
         {seasons.map((season) => (
           <div key={season.id} className="border border-gray-200 rounded-lg overflow-hidden">
             {/* Header de la temporada */}
-            <div className="bg-gray-50 p-4 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">
+            <div className="bg-gray-50 p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+              <div className="flex-1">
+                <h3 className="text-base md:text-lg font-bold text-gray-900">
                   {season.tournament.name} - {season.year}
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs md:text-sm text-gray-600 mt-1">
                   {season.competitions.length} competencia(s)
                 </p>
               </div>
               <button
                 onClick={() => handleDeleteSeason(season.id, season.year, season.tournament.name)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+                className="w-full md:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-xs md:text-sm font-medium"
               >
                 🗑️ Eliminar Temporada
               </button>
@@ -213,16 +213,16 @@ export default function AdminCompetitionsManager() {
             {season.competitions.length > 0 && (
               <div className="divide-y divide-gray-200">
                 {season.competitions.map((competition) => (
-                  <div key={competition.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                    <div>
-                      <p className="font-medium text-gray-900">{competition.name}</p>
-                      <p className="text-sm text-gray-500">
+                  <div key={competition.id} className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:bg-gray-50">
+                    <div className="flex-1">
+                      <p className="text-xs md:text-sm font-medium text-gray-900">{competition.name}</p>
+                      <p className="text-xs text-gray-500 mt-1">
                         {competition.matches?.length || 0} partido(s)
                       </p>
                     </div>
                     <button
                       onClick={() => handleDeleteCompetition(competition.id, competition.name, season.year, season.tournament.name)}
-                      className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-sm font-medium"
+                      className="w-full md:w-auto px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-xs font-medium"
                     >
                       🗑️ Eliminar
                     </button>
