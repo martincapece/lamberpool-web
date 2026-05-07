@@ -205,9 +205,8 @@ export default function PlayersPage() {
                 <tr className="border-b-2 border-gray-200">
                   <th className="text-left p-2 md:p-3 font-semibold text-gray-700">Jugador</th>
                   <th className="text-center p-2 md:p-3 font-semibold text-gray-700">Partidos</th>
-                  <th className="text-center p-2 md:p-3 font-semibold text-gray-700">Promedio</th>
                   <th className="text-center p-2 md:p-3 font-semibold text-gray-700">Goles</th>
-                  <th className="text-center p-2 md:p-3 font-semibold text-gray-700">Tarjetas</th>
+                  <th className="text-center p-2 md:p-3 font-semibold text-gray-700">Promedio</th>
                 </tr>
               </thead>
               <tbody>
@@ -225,18 +224,15 @@ export default function PlayersPage() {
                     if (b.stats.rating === null) return -1;
                     return b.stats.rating - a.stats.rating;
                   })
-                  .map((player) => (
+                  .map((player, index) => (
                     <tr key={player.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="p-2 md:p-3 text-gray-800 font-medium">
-                        {player.name} (#{player.number})
+                        {index + 1}. {player.name} (#{player.number})
                       </td>
                       <td className="p-2 md:p-3 text-center text-gray-700">{player.stats.matches}</td>
+                      <td className="p-2 md:p-3 text-center text-gray-700">{player.stats.goals}</td>
                       <td className="p-2 md:p-3 text-center font-bold text-blue-700">
                         {player.stats.rating !== null ? player.stats.rating.toFixed(2) : 'S/N'}
-                      </td>
-                      <td className="p-2 md:p-3 text-center text-gray-700">{player.stats.goals}</td>
-                      <td className="p-2 md:p-3 text-center text-gray-700">
-                        {player.stats.yellowCards + player.stats.redCards}
                       </td>
                     </tr>
                   ))}

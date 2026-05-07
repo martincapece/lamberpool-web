@@ -245,6 +245,9 @@ export default function PlayerDetailPage() {
                   <div className="text-xs text-gray-600 mb-3">
                     {new Date(match.match.date).toLocaleDateString('es-ES')}
                   </div>
+                  <div className="text-xs text-gray-500 mb-1">
+                    Torneo: {match.match.competition?.season?.tournament?.name || 'Sin torneo'}
+                  </div>
                   <div className="text-xs text-gray-500 mb-2">
                     {match.match.competition?.name || 'Sin competición'}
                   </div>
@@ -280,8 +283,9 @@ export default function PlayerDetailPage() {
               <thead>
                 <tr className="border-b-2 border-gray-300">
                   <th className="text-left p-4 font-semibold text-gray-700">Partido</th>
-                  <th className="text-center p-4 font-semibold text-gray-700">Posición</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Torneo</th>
                   <th className="text-center p-4 font-semibold text-gray-700">Competición</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Posición</th>
                   <th className="text-center p-4 font-semibold text-gray-700">Goles</th>
                   <th className="text-center p-4 font-semibold text-gray-700">Tarjetas</th>
                   <th className="text-right p-4 font-semibold text-gray-700">Valoración</th>
@@ -302,10 +306,13 @@ export default function PlayerDetailPage() {
                           {new Date(match.match.date).toLocaleDateString('es-ES')}
                         </div>
                       </td>
-                      <td className="text-center p-4 text-gray-700">{match.position}</td>
+                      <td className="text-center p-4 text-gray-700">
+                        {match.match.competition?.season?.tournament?.name || 'Sin torneo'}
+                      </td>
                       <td className="text-center p-4 text-gray-700">
                         {match.match.competition?.name || 'Sin competición'}
                       </td>
+                      <td className="text-center p-4 text-gray-700">{match.position}</td>
                       <td className="text-center p-4 text-gray-700">
                         {match.goals > 0 ? `⚽ ${match.goals}` : '-'}
                       </td>

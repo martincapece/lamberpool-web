@@ -11,7 +11,10 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node prisma/seed.ts",
+    "backfill:match-dates:dry": "ts-node prisma/scripts/backfill-match-dates.ts --dry-run",
+    "backfill:match-dates": "ts-node prisma/scripts/backfill-match-dates.ts --apply",
+    "backfill:match-dates:reverse": "ts-node prisma/scripts/backfill-match-dates.ts --apply --reverse"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
