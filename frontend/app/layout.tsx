@@ -39,7 +39,7 @@ export default function RootLayout({
                   <img 
                     src="/logo.jpeg" 
                     alt="Lamberpool FC" 
-                    className="h-12 md:h-16 w-auto object-contain"
+                    className="h-10 md:h-12 lg:h-16 w-auto object-contain"
                   />
                   <div>
                     <h1 className={`${displayFont.className} text-3xl md:text-4xl tracking-wide`}>Lamberpool FC</h1>

@@ -57,6 +57,58 @@ router.get('/:matchId', async (req, res) => {
   }
 });
 
+// GET all match players for a player (includes match details)
+router.get('/player/:playerId', async (req, res) => {
+  try {
+    const matchPlayers = await prisma.matchPlayer.findMany({
+      where: { playerId: req.params.playerId },
+      select: {
+        id: true,
+        playerId: true,
+        matchId: true,
+        position: true,
+        goals: true,
+        cards: true,
+        player: {
+          select: {
+            id: true,
+            name: true,
+            number: true,
+          },
+        },
+        match: {
+          select: {
+            id: true,
+            opponent: true,
+            date: true,
+            goalsFor: true,
+            goalsAgainst: true,
+          },
+        },
+        ratings: {
+          select: {
+            score: true,
+          },
+        },
+        guestRatings: {
+          select: {
+            score: true,
+          },
+        },
+      },
+      orderBy: {
+        match: {
+          date: 'desc',
+        },
+      },
+    });
+
+    res.json(matchPlayers);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch player match history' });
+  }
+});
+
 // POST add player to match
 router.post('/', async (req, res) => {
   try {

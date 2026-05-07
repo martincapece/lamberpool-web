@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { playersAPI, teamAPI, ratingsAPI } from '@/lib/api';
+import { playersAPI, teamAPI } from '@/lib/api';
 import AdminFeedbackModal from './AdminFeedbackModal';
 
 interface Player {
@@ -137,25 +137,6 @@ export default function AdminPlayerManagement() {
     }
   };
 
-  const handleClearRatings = async () => {
-    if (!confirm('Esto borrara todas las valoraciones. Quieres continuar?')) {
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const response = await ratingsAPI.deleteAll();
-      setSuccess(`Valoraciones eliminadas: ${response.data.deleted}`);
-    } catch (err: any) {
-      setError('Error al eliminar las valoraciones');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <AdminFeedbackModal
@@ -225,20 +206,7 @@ export default function AdminPlayerManagement() {
       </div>
 
       <div>
-        <h3 className="text-lg md:text-xl font-semibold mb-4">Plantilla Actual ({players.length})</h3>
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
-          <button
-            type="button"
-            onClick={handleClearRatings}
-            disabled={loading}
-            className="w-full md:w-auto bg-red-600 text-white px-4 py-2 md:py-2 rounded text-xs md:text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition"
-          >
-            Borrar todas las valoraciones
-          </button>
-          <p className="text-xs md:text-sm text-gray-600 flex-1">
-            Esto permite eliminar jugadores con valoraciones previas.
-          </p>
-        </div>
+        <h3 className="text-lg md:text-xl font-semibold mb-6">Plantilla Actual ({players.length})</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {players.map(player => (
             <div key={player.id} className={`p-4 border rounded transition-colors ${editingId === player.id ? 'bg-blue-50 border-blue-300' : 'bg-gray-50'}`}>

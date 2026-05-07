@@ -1,4 +1,9 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+
 interface PlayerStatsProps {
+  id: string;
   name: string;
   number: number;
   goals: number;
@@ -6,7 +11,9 @@ interface PlayerStatsProps {
   matches?: number;
 }
 
-export default function PlayerStats({ name, number, goals, rating, matches = 0 }: PlayerStatsProps) {
+export default function PlayerStats({ id, name, number, goals, rating, matches = 0 }: PlayerStatsProps) {
+  const router = useRouter();
+
   const ratingColor =
     rating === null
       ? 'text-gray-400'
@@ -22,8 +29,15 @@ export default function PlayerStats({ name, number, goals, rating, matches = 0 }
                 ? 'text-purple-600'
                 : 'text-gray-400';
 
+  const handleClick = () => {
+    router.push(`/players/${id}`);
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow p-3 md:p-4 hover:shadow-lg transition">
+    <button
+      onClick={handleClick}
+      className="w-full bg-white rounded-lg shadow p-3 md:p-4 hover:shadow-lg transition cursor-pointer text-left"
+    >
       <div className="flex justify-between items-start mb-2 md:mb-3">
         <div>
           <p className="text-xs md:text-sm text-gray-500">#{number}</p>
@@ -50,6 +64,6 @@ export default function PlayerStats({ name, number, goals, rating, matches = 0 }
           </p>
         </div>
       </div>
-    </div>
+    </button>
   )
 }

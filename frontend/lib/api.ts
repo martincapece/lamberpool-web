@@ -72,6 +72,7 @@ export const matchesAPI = {
 // Match Players endpoints
 export const matchPlayersAPI = {
   getByMatch: (matchId: string) => apiClient.get(`/match-players/${matchId}`),
+  getByPlayer: (playerId: string) => apiClient.get(`/match-players/player/${playerId}`),
   add: (data: any) => apiClient.post('/match-players', data),
   update: (id: string, data: any) => apiClient.put(`/match-players/${id}`, data),
   delete: (id: string) => apiClient.delete(`/match-players/${id}`),

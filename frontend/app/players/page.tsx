@@ -145,6 +145,7 @@ export default function PlayersPage() {
               return (
                 <PlayerStats
                   key={player.id}
+                  id={player.id}
                   name={player.name}
                   number={player.number}
                   goals={stats.goals}

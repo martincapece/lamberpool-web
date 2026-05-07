@@ -120,10 +120,10 @@ export default function MatchLineupViewer({ matchId: propMatchId }: Props) {
     const rating = getRating(player);
     return (
       <div className="flex flex-col items-center space-y-1">
-        <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-900 text-white rounded-full flex items-center justify-center font-bold text-base md:text-xl shadow-lg border-2 border-white">
+        <div className="w-10 h-10 md:w-14 md:h-14 lg:w-16 lg:h-16 bg-blue-900 text-white rounded-full flex items-center justify-center font-bold text-sm md:text-base lg:text-xl shadow-lg border-2 border-white">
           {player.player.number}
         </div>
-        <p className="font-bold text-white text-xs md:text-sm text-center leading-tight drop-shadow-lg">{player.player.name}</p>
+        <p className="font-bold text-white text-xs md:text-sm lg:text-base text-center leading-tight drop-shadow-lg">{player.player.name}</p>
         <div className="flex items-center gap-0.5 md:gap-1.5">
           <span className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-bold shadow ${ratingTone(rating ?? 0)}`}>
             {rating === null ? 'S/N' : rating.toFixed(1)}
@@ -147,11 +147,11 @@ export default function MatchLineupViewer({ matchId: propMatchId }: Props) {
   const BenchPlayerCard = ({ player }: { player: MatchPlayer }) => {
     const rating = getRating(player);
     return (
-      <div className="bg-gray-700 text-white rounded-lg p-2 md:p-3 flex flex-col items-center space-y-1 shadow">
-        <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-bold text-sm md:text-base border-2 border-gray-500">
+      <div className="bg-gray-700 text-white rounded-lg p-2 md:p-3 lg:p-4 flex flex-col items-center space-y-1 shadow">
+        <div className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-bold text-xs md:text-sm lg:text-base border-2 border-gray-500">
           {player.player.number}
         </div>
-        <p className="font-semibold text-[10px] md:text-xs text-center leading-tight">{player.player.name}</p>
+        <p className="font-semibold text-[9px] md:text-xs lg:text-sm text-center leading-tight">{player.player.name}</p>
         <div className="flex flex-wrap items-center justify-center gap-1">
           <span className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-bold ${ratingTone(rating ?? 0)}`}>
             {rating === null ? 'S/N' : rating.toFixed(1)}
@@ -227,7 +227,7 @@ export default function MatchLineupViewer({ matchId: propMatchId }: Props) {
 
           {/* Campo de Fútbol Horizontal */}
           <div className="w-full mx-auto">
-            <div className="relative bg-gradient-to-r from-green-600 to-green-700 rounded-lg p-3 md:p-6 shadow-xl" style={{ minHeight: '400px', maxHeight: '600px' }}>
+            <div className="relative bg-gradient-to-r from-green-600 to-green-700 rounded-lg p-2 md:p-4 lg:p-6 shadow-xl" style={{ minHeight: '300px', maxHeight: '600px' }}>
               {/* Líneas del campo */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none">
                 {/* Línea del medio vertical */}
@@ -241,7 +241,7 @@ export default function MatchLineupViewer({ matchId: propMatchId }: Props) {
                 <rect x="83%" y="20%" width="15%" height="60%" stroke="white" strokeWidth="2" fill="none" opacity="0.4" />
               </svg>
 
-              <div className="relative flex items-center justify-between px-2 md:px-8 gap-2 md:gap-4" style={{ minHeight: '400px', maxHeight: '600px' }}>
+              <div className="relative flex items-center justify-between px-1 md:px-4 lg:px-8 gap-1 md:gap-2 lg:gap-4" style={{ minHeight: '300px', maxHeight: '600px' }}>
                 {/* Arquero - Izquierda */}
                 {goalkeeper.length > 0 && (
                   <div className="flex flex-col items-center gap-2 md:gap-3">
