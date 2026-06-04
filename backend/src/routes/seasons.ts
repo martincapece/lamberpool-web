@@ -15,6 +15,13 @@ router.get('/:tournamentId', async (req, res) => {
         year: true,
         isActive: true,
         tournamentId: true,
+        tournament: {
+          select: {
+            id: true,
+            name: true,
+            teamId: true,
+          },
+        },
         competitions: {
           select: {
             id: true,

@@ -27,6 +27,8 @@ interface Season {
 export default function CompetitionsGrid() {
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; name: string } | null>(null);
   const [zoomLevel, setZoomLevel] = useState(100);
   const router = useRouter();
@@ -36,28 +38,70 @@ export default function CompetitionsGrid() {
   }, []);
 
   const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    setWarning(null);
+
     try {
       const tournamentsResponse = await tournamentsAPI.getAll();
+      const tournaments = Array.isArray(tournamentsResponse.data) ? tournamentsResponse.data : [];
+
+      if (tournaments.length === 0) {
+        setSeasons([]);
+        return;
+      }
+
+      let hadPartialFailures = false;
 
       const allSeasons: Season[] = [];
-      for (const tournament of tournamentsResponse.data) {
-        const seasonsResponse = await seasonsAPI.getAll(tournament.id);
-        const seasonsWithCompetitions = await Promise.all(
-          seasonsResponse.data.map(async (season: any) => {
-            const competitionsResponse = await competitionsAPI.getAll(season.id);
-            return {
-              ...season,
-              tournament,
-              competitions: competitionsResponse.data,
-            };
-          })
-        );
-        allSeasons.push(...seasonsWithCompetitions);
+      for (const tournament of tournaments) {
+        try {
+          const seasonsResponse = await seasonsAPI.getAll(tournament.id);
+          const seasonsData = Array.isArray(seasonsResponse.data) ? seasonsResponse.data : [];
+
+          const seasonsWithCompetitions = await Promise.all(
+            seasonsData.map(async (season: any) => {
+              try {
+                const competitionsResponse = await competitionsAPI.getAll(season.id);
+                return {
+                  ...season,
+                  tournament: season.tournament || tournament,
+                  competitions: Array.isArray(competitionsResponse.data)
+                    ? competitionsResponse.data
+                    : Array.isArray(season.competitions)
+                      ? season.competitions
+                      : [],
+                };
+              } catch (competitionError) {
+                hadPartialFailures = true;
+                console.error(`Error loading competitions for season ${season.id}:`, competitionError);
+                return {
+                  ...season,
+                  tournament: season.tournament || tournament,
+                  competitions: Array.isArray(season.competitions) ? season.competitions : [],
+                };
+              }
+            })
+          );
+
+          allSeasons.push(...seasonsWithCompetitions);
+        } catch (seasonError) {
+          hadPartialFailures = true;
+          console.error(`Error loading seasons for tournament ${tournament.id}:`, seasonError);
+        }
       }
 
       setSeasons(allSeasons);
+
+      if (allSeasons.length === 0) {
+        setError('No se pudieron cargar los torneos y competencias. Intenta recargar en unos segundos.');
+      } else if (hadPartialFailures) {
+        setWarning('Algunas competencias no pudieron cargarse, pero se muestran los datos disponibles.');
+      }
     } catch (error) {
       console.error('Error loading data:', error);
+      setSeasons([]);
+      setError('No se pudieron cargar los torneos y competencias. Intenta recargar en unos segundos.');
     } finally {
       setLoading(false);
     }
@@ -86,8 +130,26 @@ export default function CompetitionsGrid() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+          <p className="font-medium">{error}</p>
+        </div>
+        <div className="text-center py-12">
+          <button
+            onClick={loadData}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+          >
+            Reintentar carga
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const allCompetitions = seasons.flatMap((season) =>
-    season.competitions.map((comp) => ({
+    (Array.isArray(season.competitions) ? season.competitions : []).map((comp) => ({
       ...comp,
       season,
     }))
@@ -103,6 +165,12 @@ export default function CompetitionsGrid() {
 
   return (
     <>
+      {warning && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+          <p className="text-sm font-medium">{warning}</p>
+        </div>
+      )}
+
       {/* Modal para ver tabla final */}
       {selectedPhoto && (
         <div 

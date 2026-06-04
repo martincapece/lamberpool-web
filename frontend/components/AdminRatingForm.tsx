@@ -45,6 +45,8 @@ export default function AdminRatingForm() {
   const [matchPlayers, setMatchPlayers] = useState<MatchPlayer[]>([]);
   const [photos, setPhotos] = useState<any[]>([]);
   const [matchSearch, setMatchSearch] = useState('');
+  const [isMatchMenuOpen, setIsMatchMenuOpen] = useState(false);
+  const [focusedMatchIndex, setFocusedMatchIndex] = useState(-1);
   
   const [selectedMatch, setSelectedMatch] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState('');
@@ -91,6 +93,99 @@ export default function AdminRatingForm() {
       return label.includes(search);
     });
   }, [matches, matchSearch]);
+
+  const selectedMatchData = matches.find(m => m.id === selectedMatch);
+
+  const getMatchPrimaryLabel = (match: Match) => `${match.opponent} - ${formatMatchDate(match.date)}`;
+
+  const getMatchSecondaryLabel = (match: Match) =>
+    `Resultado: ${match.goalsFor}-${match.goalsAgainst}${match.status === 'CANCELED' ? ' • Cancelado' : ''}`;
+
+  const resetMatchSelectionState = () => {
+    setSelectedMatch('');
+    setSelectedPlayer('');
+    setMatchPlayers([]);
+    setGuestJudges([]);
+    setPhotos([]);
+    setRatings({});
+    setGuestRatings({});
+    setGoals(0);
+    setCards('');
+  };
+
+  const handleMatchSelect = (match: Match) => {
+    setSelectedMatch(match.id);
+    setMatchSearch('');
+    setIsMatchMenuOpen(false);
+    setFocusedMatchIndex(-1);
+  };
+
+  const handleMatchInputChange = (value: string) => {
+    const selectedLabel = selectedMatchData ? getMatchPrimaryLabel(selectedMatchData) : '';
+
+    if (selectedMatch && value !== selectedLabel) {
+      resetMatchSelectionState();
+    }
+
+    setMatchSearch(value);
+    setIsMatchMenuOpen(true);
+    setFocusedMatchIndex(filteredMatches.length > 0 ? 0 : -1);
+  };
+
+  const handleMatchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setIsMatchMenuOpen(true);
+      setFocusedMatchIndex((current) => {
+        if (filteredMatches.length === 0) {
+          return -1;
+        }
+
+        return current < filteredMatches.length - 1 ? current + 1 : current;
+      });
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setFocusedMatchIndex((current) => (current > 0 ? current - 1 : 0));
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      if (isMatchMenuOpen && focusedMatchIndex >= 0 && filteredMatches[focusedMatchIndex]) {
+        event.preventDefault();
+        handleMatchSelect(filteredMatches[focusedMatchIndex]);
+      }
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setIsMatchMenuOpen(false);
+      setFocusedMatchIndex(-1);
+    }
+  };
+
+  useEffect(() => {
+    if (!isMatchMenuOpen) {
+      setFocusedMatchIndex(-1);
+      return;
+    }
+
+    if (filteredMatches.length === 0) {
+      setFocusedMatchIndex(-1);
+      return;
+    }
+
+    setFocusedMatchIndex((current) => {
+      if (current < 0) {
+        return 0;
+      }
+
+      return current >= filteredMatches.length ? filteredMatches.length - 1 : current;
+    });
+  }, [filteredMatches.length, isMatchMenuOpen]);
 
   // Load judges and matches
   useEffect(() => {
@@ -297,6 +392,11 @@ export default function AdminRatingForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!selectedMatch) {
+      setError('Selecciona un partido');
+      return;
+    }
     
     if (!selectedPlayer) {
       setError('Selecciona un jugador');
@@ -368,7 +468,6 @@ export default function AdminRatingForm() {
     }
   };
 
-  const selectedMatchData = matches.find(m => m.id === selectedMatch);
   const selectedPlayerData = matchPlayers.find(p => p.id === selectedPlayer);
 
   return (
@@ -388,29 +487,75 @@ export default function AdminRatingForm() {
 
       <div>
         <label className="block text-xs md:text-sm font-medium mb-2">Selecciona Partido</label>
-        <input
-          type="text"
-          value={matchSearch}
-          onChange={(e) => setMatchSearch(e.target.value)}
-          placeholder="Buscar por rival o fecha (dd/mm/aaaa)"
-          className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base mb-2"
-        />
-        <select
-          value={selectedMatch}
-          onChange={(e) => setSelectedMatch(e.target.value)}
-          required
-          className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-        >
-          <option value="">Elige un partido</option>
-          {filteredMatches.map(m => (
-            <option key={m.id} value={m.id}>
-              {m.opponent} - {formatMatchDate(m.date)} ({m.goalsFor}-{m.goalsAgainst}){m.status === 'CANCELED' ? ' - Cancelado' : ''}
-            </option>
-          ))}
-        </select>
-        {matchSearch && filteredMatches.length === 0 && (
-          <p className="mt-2 text-xs text-gray-500">No se encontraron partidos para esa búsqueda.</p>
-        )}
+        <div className="relative">
+          <input
+            type="text"
+            value={isMatchMenuOpen ? matchSearch : selectedMatchData ? getMatchPrimaryLabel(selectedMatchData) : ''}
+            onChange={(e) => handleMatchInputChange(e.target.value)}
+            onFocus={() => setIsMatchMenuOpen(true)}
+            onBlur={() => {
+              window.setTimeout(() => {
+                setIsMatchMenuOpen(false);
+              }, 150);
+            }}
+            onKeyDown={handleMatchKeyDown}
+            placeholder="Buscar por rival o fecha"
+            className={`w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${
+              isMatchMenuOpen ? 'rounded-b-none border-b-0' : ''
+            }`}
+            role="combobox"
+            aria-expanded={isMatchMenuOpen}
+            aria-controls="match-results-listbox"
+            aria-autocomplete="list"
+            autoComplete="off"
+          />
+
+          {isMatchMenuOpen && (
+            <div
+              id="match-results-listbox"
+              className="absolute z-20 mt-0 w-full overflow-hidden rounded-b-lg border border-t-0 border-gray-300 bg-white shadow-lg"
+              role="listbox"
+            >
+              <div className="max-h-[32rem] overflow-y-auto">
+                {filteredMatches.length > 0 ? (
+                  filteredMatches.map((match, index) => (
+                    <button
+                      key={match.id}
+                      type="button"
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        handleMatchSelect(match);
+                      }}
+                      onMouseEnter={() => setFocusedMatchIndex(index)}
+                      className={`w-full border-l-4 px-4 py-2 text-left transition ${
+                        selectedMatch === match.id
+                          ? 'border-green-600 bg-green-50'
+                          : index === focusedMatchIndex
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-transparent hover:bg-gray-50'
+                      }`}
+                      role="option"
+                      aria-selected={selectedMatch === match.id}
+                    >
+                      <div className="truncate text-sm font-medium text-gray-900">{match.opponent}</div>
+                      <div className="text-xs text-gray-600">
+                        {formatMatchDate(match.date)} • {getMatchSecondaryLabel(match)}
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-4 text-sm text-gray-500">No se encontraron partidos.</div>
+                )}
+              </div>
+
+              {filteredMatches.length > 15 && (
+                <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-xs text-gray-600">
+                  Mostrando los partidos filtrados en un menú con scroll. Desliza para ver más resultados.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {selectedMatch && (
