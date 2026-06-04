@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { playersAPI } from '@/lib/api';
 import PlayerStats from '@/components/PlayerStats';
 import PlayerStatsFilters, { FilterOptions } from '@/components/PlayerStatsFilters';
@@ -17,6 +17,7 @@ export default function PlayersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterOptions>({ type: 'all' });
+  const [minMatchesForTable, setMinMatchesForTable] = useState(0);
 
   useEffect(() => {
     fetchPlayers();
@@ -87,6 +88,23 @@ export default function PlayersPage() {
     };
   };
 
+  const playersWithStats = useMemo(
+    () =>
+      players.map((player) => ({
+        ...player,
+        stats: getPlayerStats(player),
+      })),
+    [players, activeFilter]
+  );
+
+  const tablePlayers = useMemo(
+    () =>
+      playersWithStats
+        .filter((player) => player.stats.matches >= minMatchesForTable)
+        .sort((a, b) => (b.stats.rating ?? -Infinity) - (a.stats.rating ?? -Infinity)),
+    [playersWithStats, minMatchesForTable]
+  );
+
   return (
     <div className="space-y-8">
       <section>
@@ -117,8 +135,8 @@ export default function PlayersPage() {
         {!loading && players.length > 0 && (
           <div className="px-4 sm:px-0">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {players.map((player) => {
-                const stats = getPlayerStats(player);
+              {playersWithStats.map((player) => {
+                const stats = player.stats;
                 return (
                   <PlayerStats
                     key={player.id}
@@ -142,10 +160,13 @@ export default function PlayersPage() {
           <h2 className="text-lg md:text-2xl font-bold text-blue-900 mb-3 md:mb-4">Top Goleadores</h2>
           <div className="space-y-2 md:space-y-3">
             {players
-              .map((player) => ({
-                ...player,
-                goals: getPlayerStats(player).goals,
-              }))
+              .map((player) => {
+                const stats = playersWithStats.find((p) => p.id === player.id)?.stats;
+                return {
+                  ...player,
+                  goals: stats?.goals || 0,
+                };
+              })
               .sort((a, b) => b.goals - a.goals)
               .slice(0, 5)
               .map((player, index) => (
@@ -167,12 +188,12 @@ export default function PlayersPage() {
           <div className="space-y-2 md:space-y-3">
             {players
               .map((player) => {
-                const stats = getPlayerStats(player);
+                const stats = playersWithStats.find((p) => p.id === player.id)?.stats;
                 return {
                   ...player,
-                  totalCards: stats.yellowCards + stats.redCards,
-                  yellowCards: stats.yellowCards,
-                  redCards: stats.redCards,
+                  totalCards: (stats?.yellowCards || 0) + (stats?.redCards || 0),
+                  yellowCards: stats?.yellowCards || 0,
+                  redCards: stats?.redCards || 0,
                 };
               })
               .filter((p) => p.totalCards > 0)
@@ -197,6 +218,22 @@ export default function PlayersPage() {
       {!loading && players.length > 0 && (
         <section className="bg-white rounded-lg shadow p-4 md:p-6">
           <h2 className="text-lg md:text-2xl font-bold text-blue-900 mb-3 md:mb-4">Estadísticas Completas</h2>
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-end gap-3">
+            <label className="text-sm text-gray-700 font-medium" htmlFor="minMatchesForTable">
+              Mostrar jugadores con mínimo de partidos
+            </label>
+            <input
+              id="minMatchesForTable"
+              type="number"
+              min={0}
+              value={minMatchesForTable}
+              onChange={(e) => setMinMatchesForTable(Number(e.target.value) || 0)}
+              className="w-full sm:w-28 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm"
+            />
+            <p className="text-xs text-gray-500">
+              Mostrando {tablePlayers.length} de {playersWithStats.length} jugadores
+            </p>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 text-xs md:text-sm">
               <thead className="bg-gray-50">
@@ -210,15 +247,7 @@ export default function PlayersPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {players
-                  .map((player) => {
-                    const stats = getPlayerStats(player);
-                    return {
-                      ...player,
-                      stats,
-                    };
-                  })
-                  .sort((a, b) => (b.stats.rating ?? -Infinity) - (a.stats.rating ?? -Infinity))
-                  .map((player) => {
+                  .length > 0 && tablePlayers.map((player) => {
                     const ratingColor =
                       player.stats.rating === null
                         ? 'text-gray-400'
@@ -255,6 +284,9 @@ export default function PlayersPage() {
                   })}
               </tbody>
             </table>
+            {tablePlayers.length === 0 && (
+              <p className="text-sm text-gray-500 py-4">No hay jugadores que cumplan ese mínimo de partidos.</p>
+            )}
           </div>
         </section>
       )}

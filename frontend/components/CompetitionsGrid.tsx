@@ -9,6 +9,12 @@ interface Competition {
   name: string;
   seasonId: string;
   finalTablePhotoUrl?: string;
+  finalPhotos?: {
+    id: string;
+    url: string;
+    order: number;
+    uploadedAt: string;
+  }[];
 }
 
 interface Season {
@@ -169,6 +175,13 @@ export default function CompetitionsGrid() {
 
       <div className="flex flex-wrap gap-6 justify-center md:justify-start">
         {allCompetitions.map((competition) => (
+          (() => {
+            const primaryPhotoUrl =
+              competition.finalPhotos && competition.finalPhotos.length > 0
+                ? competition.finalPhotos[0].url
+                : competition.finalTablePhotoUrl;
+
+            return (
           <button
             key={competition.id}
             onClick={() =>
@@ -195,19 +208,19 @@ export default function CompetitionsGrid() {
               {/* Información */}
               <div className="text-center space-y-3">
                 <h3 className="text-white font-bold text-lg line-clamp-2">
-                  {competition.name}
+                  {competition.season.tournament.name}
                 </h3>
                 <p className="text-sm text-gray-200 font-medium">
-                  {competition.season.tournament.name} • {competition.season.year}
+                  {competition.name} • {competition.season.year}
                 </p>
-                {competition.finalTablePhotoUrl && (
+                {primaryPhotoUrl && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setZoomLevel(100); // Reset zoom
                       setSelectedPhoto({
-                        url: competition.finalTablePhotoUrl!,
-                        name: `Tabla Final - ${competition.name}`,
+                        url: primaryPhotoUrl,
+                        name: `Tabla Final - ${competition.season.tournament.name}`,
                       });
                     }}
                     className="block w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold transition transform hover:scale-105"
@@ -220,16 +233,18 @@ export default function CompetitionsGrid() {
             </div>
 
             {/* Foto de tabla final (si existe) */}
-            {competition.finalTablePhotoUrl && (
+            {primaryPhotoUrl && (
               <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity">
                 <img
-                  src={competition.finalTablePhotoUrl}
+                  src={primaryPhotoUrl}
                   alt="Tabla final"
                   className="w-full h-full object-cover"
                 />
               </div>
             )}
           </button>
+            );
+          })()
         ))}
       </div>
     </>

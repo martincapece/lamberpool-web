@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { matchesAPI, matchPlayersAPI, ratingsAPI, judgesAPI, teamAPI, guestJudgesAPI, guestRatingsAPI, photosAPI } from '@/lib/api';
 import PhotoUpload from './PhotoUpload';
 import AdminFeedbackModal from './AdminFeedbackModal';
@@ -44,6 +44,7 @@ export default function AdminRatingForm() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [matchPlayers, setMatchPlayers] = useState<MatchPlayer[]>([]);
   const [photos, setPhotos] = useState<any[]>([]);
+  const [matchSearch, setMatchSearch] = useState('');
   
   const [selectedMatch, setSelectedMatch] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState('');
@@ -66,6 +67,30 @@ export default function AdminRatingForm() {
     if (cardsValue === 'YY') return '🟨🟥';
     return cardsValue;
   };
+
+  const formatMatchDate = (dateValue: string) => {
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) {
+      return dateValue;
+    }
+    return date.toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const filteredMatches = useMemo(() => {
+    const search = matchSearch.trim().toLowerCase();
+    if (!search) {
+      return matches;
+    }
+
+    return matches.filter((match) => {
+      const label = `${match.opponent} ${formatMatchDate(match.date)}`.toLowerCase();
+      return label.includes(search);
+    });
+  }, [matches, matchSearch]);
 
   // Load judges and matches
   useEffect(() => {
@@ -363,6 +388,13 @@ export default function AdminRatingForm() {
 
       <div>
         <label className="block text-xs md:text-sm font-medium mb-2">Selecciona Partido</label>
+        <input
+          type="text"
+          value={matchSearch}
+          onChange={(e) => setMatchSearch(e.target.value)}
+          placeholder="Buscar por rival o fecha (dd/mm/aaaa)"
+          className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base mb-2"
+        />
         <select
           value={selectedMatch}
           onChange={(e) => setSelectedMatch(e.target.value)}
@@ -370,12 +402,15 @@ export default function AdminRatingForm() {
           className="w-full px-4 py-3 md:py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
         >
           <option value="">Elige un partido</option>
-          {matches.map(m => (
+          {filteredMatches.map(m => (
             <option key={m.id} value={m.id}>
-              {m.opponent} - {m.date} ({m.goalsFor}-{m.goalsAgainst}){m.status === 'CANCELED' ? ' - Cancelado' : ''}
+              {m.opponent} - {formatMatchDate(m.date)} ({m.goalsFor}-{m.goalsAgainst}){m.status === 'CANCELED' ? ' - Cancelado' : ''}
             </option>
           ))}
         </select>
+        {matchSearch && filteredMatches.length === 0 && (
+          <p className="mt-2 text-xs text-gray-500">No se encontraron partidos para esa búsqueda.</p>
+        )}
       </div>
 
       {selectedMatch && (
@@ -396,7 +431,7 @@ export default function AdminRatingForm() {
                     <button
                       type="button"
                       onClick={() => handleDeleteGuestJudge(gj.id, gj.name)}
-                      className="w-full md:w-auto text-white bg-red-600 hover:bg-red-700 text-xs px-3 py-2 md:px-4 md:py-2 rounded hover:bg-red-50 transition font-medium"
+                      className="w-full md:w-auto text-white bg-red-600 hover:bg-red-700 text-xs px-3 py-2 md:px-4 md:py-2 rounded transition font-medium"
                     >
                       Eliminar
                     </button>

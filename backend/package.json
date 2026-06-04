@@ -14,7 +14,9 @@
     "seed": "ts-node prisma/seed.ts",
     "backfill:match-dates:dry": "ts-node prisma/scripts/backfill-match-dates.ts --dry-run",
     "backfill:match-dates": "ts-node prisma/scripts/backfill-match-dates.ts --apply",
-    "backfill:match-dates:reverse": "ts-node prisma/scripts/backfill-match-dates.ts --apply --reverse"
+    "backfill:match-dates:reverse": "ts-node prisma/scripts/backfill-match-dates.ts --apply --reverse",
+    "sync:championship:2026-clausura": "ts-node prisma/scripts/sync-championship-2026-clausura.ts",
+    "sync:championship:2026-apertura": "ts-node prisma/scripts/sync-championship-2026-clausura.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

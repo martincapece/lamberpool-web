@@ -16,7 +16,15 @@ interface Competition {
   name: string;
   seasonId: string;
   finalTablePhotoUrl?: string;
+  finalPhotos?: FinalPhoto[];
   matches?: any[];
+}
+
+interface FinalPhoto {
+  id: string;
+  url: string;
+  order: number;
+  uploadedAt: string;
 }
 
 export default function AdminFinalTablePhotos() {
@@ -24,7 +32,7 @@ export default function AdminFinalTablePhotos() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ title: string; message: string; tone: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
@@ -62,14 +70,14 @@ export default function AdminFinalTablePhotos() {
     }
   };
 
-  const handleDeletePhoto = async (competitionId: string, competitionName: string) => {
-    if (!window.confirm(`¿Estás seguro de que quieres eliminar la foto de tabla final de "${competitionName}"?`)) {
+  const handleDeletePhoto = async (photoId: string, competitionName: string) => {
+    if (!window.confirm(`¿Estás seguro de que quieres eliminar esta foto de "${competitionName}"?`)) {
       return;
     }
 
     try {
-      setDeletingId(competitionId);
-      await competitionsAPI.deleteFinalTablePhoto(competitionId);
+      setDeletingPhotoId(photoId);
+      await competitionsAPI.deleteFinalPhoto(photoId);
       await loadData();
       setFeedback({
         title: 'Foto eliminada',
@@ -84,7 +92,7 @@ export default function AdminFinalTablePhotos() {
         tone: 'error',
       });
     } finally {
-      setDeletingId(null);
+      setDeletingPhotoId(null);
     }
   };
 
@@ -115,11 +123,11 @@ export default function AdminFinalTablePhotos() {
         const base64 = e.target?.result as string;
 
         try {
-          await competitionsAPI.updateFinalTablePhoto(competitionId, base64);
+          await competitionsAPI.uploadFinalPhoto(competitionId, base64);
           await loadData();
           setFeedback({
             title: 'Foto subida',
-            message: `La foto de tabla final para "${competitionName}" se subió correctamente.`,
+            message: `La foto de tabla final para "${competitionName}" se agregó correctamente.`,
             tone: 'success',
           });
         } catch (err: any) {
@@ -166,7 +174,7 @@ export default function AdminFinalTablePhotos() {
       <div className="p-6 border-b border-gray-200">
         <h2 className="text-2xl font-bold text-gray-900">Fotos de Tabla Final</h2>
         <p className="text-sm text-gray-600 mt-1">
-          Sube una foto de la tabla final de cada competencia después de que termine
+          Sube una o varias fotos de la tabla final de cada competencia después de que termine
         </p>
       </div>
 
@@ -204,23 +212,49 @@ export default function AdminFinalTablePhotos() {
                         <p className="text-sm text-gray-500 mt-1">
                           {competition.matches?.length || 0} partido(s)
                         </p>
-                        {competition.finalTablePhotoUrl && (
+                        {((competition.finalPhotos && competition.finalPhotos.length > 0) || competition.finalTablePhotoUrl) && (
                           <div className="mt-3">
                             <p className="text-xs text-green-600 font-medium mb-2">
-                              ✅ Foto de tabla subida
+                              ✅ {competition.finalPhotos?.length || 1} foto(s) de tabla subida(s)
                             </p>
-                            <img
-                              src={competition.finalTablePhotoUrl}
-                              alt="Tabla final"
-                              className="h-32 rounded border border-gray-200"
-                            />
-                            <button
-                              onClick={() => handleDeletePhoto(competition.id, competition.name)}
-                              disabled={deletingId === competition.id}
-                              className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition disabled:bg-gray-400"
-                            >
-                              {deletingId === competition.id ? '⏳ Eliminando...' : '🗑️ Eliminar Foto'}
-                            </button>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {(competition.finalPhotos && competition.finalPhotos.length > 0
+                                ? competition.finalPhotos
+                                : [{
+                                    id: `legacy-${competition.id}`,
+                                    url: competition.finalTablePhotoUrl as string,
+                                    order: 0,
+                                    uploadedAt: '',
+                                  }]
+                              ).map((photo) => (
+                                <div key={photo.id} className="rounded border border-gray-200 p-2 bg-gray-50">
+                                  <img
+                                    src={photo.url}
+                                    alt="Tabla final"
+                                    className="h-28 w-full object-cover rounded border border-gray-200"
+                                  />
+                                  <button
+                                    onClick={() =>
+                                      photo.id.startsWith('legacy-')
+                                        ? competitionsAPI.deleteFinalTablePhoto(competition.id)
+                                            .then(loadData)
+                                            .catch(() => {
+                                              setFeedback({
+                                                title: 'No se pudo eliminar la foto',
+                                                message: 'Error al eliminar la foto legacy.',
+                                                tone: 'error',
+                                              });
+                                            })
+                                        : handleDeletePhoto(photo.id, competition.name)
+                                    }
+                                    disabled={deletingPhotoId === photo.id}
+                                    className="mt-2 w-full px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition disabled:bg-gray-400"
+                                  >
+                                    {deletingPhotoId === photo.id ? '⏳ Eliminando...' : '🗑️ Eliminar'}
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>

@@ -72,9 +72,23 @@ model Competition {
   updatedAt             DateTime @updatedAt
 
   matches Match[]
+  finalPhotos CompetitionFinalPhoto[]
 
   @@unique([seasonId, name])
   @@map("competitions")
+}
+
+// Competition final photos model (allows multiple final table photos per competition)
+model CompetitionFinalPhoto {
+  id            String      @id @default(cuid())
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  url           String
+  order         Int         @default(0)
+  uploadedAt    DateTime    @default(now())
+
+  @@index([competitionId])
+  @@map("competition_final_photos")
 }
 
 // Player model

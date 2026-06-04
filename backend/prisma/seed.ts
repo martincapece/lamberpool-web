@@ -97,7 +97,7 @@ async function main() {
       season: 'Apertura',
       division: '3ra División',
       tournament: 'Liga Nuñez',
-      title: 'Próximo',
+      title: 'Campeonato',
       jerseyUrl: '/jerseys/2026-apertura.png',
       altJerseyUrl: '/jerseys/2025-clausura.png',
       order: 4,

@@ -36,6 +36,11 @@ export const competitionsAPI = {
   getActive: (seasonId: string) => apiClient.get(`/competitions/${seasonId}/active`),
   create: (data: any) => apiClient.post('/competitions', data),
   delete: (id: string) => apiClient.delete(`/competitions/${id}`),
+  getFinalPhotos: (id: string) => apiClient.get(`/competitions/${id}/final-photos`),
+  uploadFinalPhoto: (id: string, photoUrl: string) =>
+    apiClient.post(`/competitions/${id}/final-photos`, { photoUrl }),
+  deleteFinalPhoto: (photoId: string) =>
+    apiClient.delete(`/competitions/final-photos/${photoId}`),
   updateFinalTablePhoto: (id: string, photoUrl: string) => 
     apiClient.put(`/competitions/${id}/final-table-photo`, { photoUrl }),
   deleteFinalTablePhoto: (id: string) => 
