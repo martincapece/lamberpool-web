@@ -40,7 +40,12 @@ interface MatchLookupEntry {
 }
 
 const ELO_BASE = 1000;
-const ELO_K = 24;
+
+type CardInfo = {
+  yellow: boolean;
+  doubleYellow: boolean;
+  redDirect: boolean;
+};
 
 export default function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -123,10 +128,11 @@ export default function PlayersPage() {
         totalRating += avgRating;
         matchCount++;
       }
-      if (mp.cards) {
-        if (mp.cards === 'Y' || mp.cards === 'Amarilla') yellowCards++;
-        else if (mp.cards === 'R' || mp.cards === 'Roja') redCards++;
-        else if (mp.cards.includes('Doble')) redCards++;
+      const cardInfo = parseCardInfo(mp.cards);
+      if (cardInfo.redDirect || cardInfo.doubleYellow) {
+        redCards++;
+      } else if (cardInfo.yellow) {
+        yellowCards++;
       }
     });
 
@@ -195,23 +201,55 @@ export default function PlayersPage() {
     return normalized.length > 0 ? normalized : null;
   };
 
-  const getCardPenalty = (cards?: string) => {
-    if (!cards) {
-      return 0;
+  const parseCardInfo = (cards?: string): CardInfo => {
+    const normalized =
+      (cards || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+
+    if (!normalized) {
+      return { yellow: false, doubleYellow: false, redDirect: false };
     }
 
-    if (cards === 'R' || cards === 'Roja' || cards.includes('Doble')) {
+    const hasDoubleYellow =
+      normalized.includes('doble amarilla') ||
+      normalized.includes('2 amarilla') ||
+      normalized.includes('2a amarilla') ||
+      normalized.includes('yy');
+
+    const hasRed = normalized === 'r' || normalized.includes('roja');
+    const hasYellow = normalized === 'y' || normalized.includes('amarilla');
+
+    if (hasRed && !hasDoubleYellow) {
+      return { yellow: false, doubleYellow: false, redDirect: true };
+    }
+
+    if (hasDoubleYellow) {
+      return { yellow: false, doubleYellow: true, redDirect: false };
+    }
+
+    if (hasYellow) {
+      return { yellow: true, doubleYellow: false, redDirect: false };
+    }
+
+    return { yellow: false, doubleYellow: false, redDirect: false };
+  };
+
+  const getCardsMetricValue = (cards?: string) => {
+    const info = parseCardInfo(cards);
+
+    if (info.redDirect || info.doubleYellow) {
       return 2;
     }
 
-    if (cards === 'Y' || cards === 'Amarilla') {
+    if (info.yellow) {
       return 1;
     }
 
     return 0;
   };
-
-  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
   const getMatchId = (matchPlayer: any): string | null => matchPlayer.matchId || matchPlayer.match?.id || null;
 
@@ -232,7 +270,6 @@ export default function PlayersPage() {
   const getMetricValue = (matchPlayer: any, metric: ComparisonMetric): number | null => {
     const avgRating = getAverageRating(matchPlayer);
     const goals = matchPlayer.goals || 0;
-    const cardPenalty = getCardPenalty(matchPlayer.cards);
 
     if (metric === 'rating') {
       return avgRating;
@@ -243,29 +280,48 @@ export default function PlayersPage() {
     }
 
     if (metric === 'cards') {
-      return cardPenalty;
+      return getCardsMetricValue(matchPlayer.cards);
     }
 
     return avgRating;
   };
 
-  const getEffectivenessScore = (matchPlayer: any): number => {
-    const avgRating = getAverageRating(matchPlayer);
-    const goals = matchPlayer.goals || 0;
-    const cardPenalty = getCardPenalty(matchPlayer.cards);
+  const getRatingPenaltyForElo = (rating: number | null) => {
+    if (rating === null) return 0;
+    if (rating <= 2) return 850;
+    if (rating <= 4) return 700;
+    if (rating <= 5.5) return 500;
+    if (rating <= 6.5) return 350;
+    if (rating < 7.5) return 200;
+    if (rating <= 8) return 100;
+    if (rating < 9) return 75;
+    if (rating <= 9.5) return 50;
+    return 0;
+  };
 
-    const ratingScore = avgRating === null ? 0.5 : clamp((avgRating - 1) / 9, 0, 1);
-    const goalsScore = clamp(goals / 3, 0, 1);
-    const disciplineScore = cardPenalty === 0 ? 1 : cardPenalty === 1 ? 0.5 : 0;
+  const getCardPenaltyForElo = (cards?: string) => {
+    const info = parseCardInfo(cards);
 
-    return clamp(ratingScore * 0.55 + goalsScore * 0.3 + disciplineScore * 0.15, 0, 1);
+    if (info.redDirect) {
+      return 125;
+    }
+
+    if (info.doubleYellow) {
+      return 100;
+    }
+
+    if (info.yellow) {
+      return 75;
+    }
+
+    return 0;
   };
 
   const getMetricLabel = (metric: ComparisonMetric) => {
     if (metric === 'rating') return 'Rating Promedio';
     if (metric === 'goals') return 'Goles por partido';
     if (metric === 'cards') return 'Tarjetas por partido';
-    return 'Indice combinado ELO de efectividad';
+    return 'Indice ELO personalizado';
   };
 
   const playersWithStats = useMemo(
@@ -362,18 +418,20 @@ export default function PlayersPage() {
             let eloB = ELO_BASE;
 
             return sharedMatches.map((match: any) => {
-              const perfA = getEffectivenessScore(match.playerAMatch);
-              const perfB = getEffectivenessScore(match.playerBMatch);
+              const ratingA = getAverageRating(match.playerAMatch);
+              const ratingB = getAverageRating(match.playerBMatch);
 
-              const expectedA = 1 / (1 + Math.pow(10, (eloB - eloA) / 400));
-              const expectedB = 1 - expectedA;
+              const goalsBonusA = (match.playerAMatch?.goals || 0) * 50;
+              const goalsBonusB = (match.playerBMatch?.goals || 0) * 50;
 
-              const perfTotal = perfA + perfB;
-              const actualA = perfTotal > 0 ? perfA / perfTotal : 0.5;
-              const actualB = perfTotal > 0 ? perfB / perfTotal : 0.5;
+              const ratingPenaltyA = getRatingPenaltyForElo(ratingA);
+              const ratingPenaltyB = getRatingPenaltyForElo(ratingB);
 
-              eloA += ELO_K * (actualA - expectedA);
-              eloB += ELO_K * (actualB - expectedB);
+              const cardsPenaltyA = getCardPenaltyForElo(match.playerAMatch?.cards);
+              const cardsPenaltyB = getCardPenaltyForElo(match.playerBMatch?.cards);
+
+              eloA += goalsBonusA - ratingPenaltyA - cardsPenaltyA;
+              eloB += goalsBonusB - ratingPenaltyB - cardsPenaltyB;
 
               return {
                 matchId: match.matchId,
@@ -382,8 +440,8 @@ export default function PlayersPage() {
                 competitionName: match.playerAMatch?.match?.competition?.name || match.playerBMatch?.match?.competition?.name || 'Competencia',
                 shortLabel: match.shortLabel,
                 date: match.date,
-                playerAValue: Number(eloA.toFixed(2)),
-                playerBValue: Number(eloB.toFixed(2)),
+                playerAValue: eloA,
+                playerBValue: eloB,
               };
             });
           })()
@@ -605,7 +663,7 @@ export default function PlayersPage() {
                 <option value="rating">Rating promedio</option>
                 <option value="goals">Goles por partido</option>
                 <option value="cards">Tarjetas por partido</option>
-                <option value="combined">Indice combinado ELO</option>
+                <option value="combined">Indice ELO personalizado</option>
               </select>
             </div>
 
@@ -628,7 +686,7 @@ export default function PlayersPage() {
           </div>
 
           <p className="text-xs text-gray-500">
-            En Indice combinado ELO se pondera rating, goles y disciplina (menos tarjetas mejora el puntaje).
+            Indice ELO personalizado: base 1000, rating y tarjetas restan puntos, goles suman 50 por cada gol.
           </p>
 
           {comparisonError && (
