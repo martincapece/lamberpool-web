@@ -5,6 +5,7 @@ import { playersAPI } from '@/lib/api';
 import PlayerStats from '@/components/PlayerStats';
 import PlayerStatsFilters, { FilterOptions } from '@/components/PlayerStatsFilters';
 import PlayerComparisonChart from '@/components/PlayerComparisonChart';
+import PlayerSearchSelect from '@/components/PlayerSearchSelect';
 
 interface Player {
   id: string;
@@ -20,6 +21,9 @@ interface ComparisonRequest {
   playerBId: string;
   metric: ComparisonMetric;
 }
+
+const ELO_BASE = 1000;
+const ELO_K = 24;
 
 export default function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -140,6 +144,10 @@ export default function PlayersPage() {
     return 0;
   };
 
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+  const getMatchId = (matchPlayer: any): string | null => matchPlayer.matchId || matchPlayer.match?.id || null;
+
   const getAverageRating = (matchPlayer: any): number | null => {
     const regularRatings = matchPlayer.ratings || [];
     const guestRatings = matchPlayer.guestRatings || [];
@@ -171,14 +179,26 @@ export default function PlayersPage() {
       return -cardPenalty;
     }
 
-    return (avgRating ?? 0) + goals - cardPenalty;
+    return avgRating;
+  };
+
+  const getEffectivenessScore = (matchPlayer: any): number => {
+    const avgRating = getAverageRating(matchPlayer);
+    const goals = matchPlayer.goals || 0;
+    const cardPenalty = getCardPenalty(matchPlayer.cards);
+
+    const ratingScore = avgRating === null ? 0.5 : clamp((avgRating - 1) / 9, 0, 1);
+    const goalsScore = clamp(goals / 3, 0, 1);
+    const disciplineScore = cardPenalty === 0 ? 1 : cardPenalty === 1 ? 0.5 : 0;
+
+    return clamp(ratingScore * 0.55 + goalsScore * 0.3 + disciplineScore * 0.15, 0, 1);
   };
 
   const getMetricLabel = (metric: ComparisonMetric) => {
     if (metric === 'rating') return 'Rating Promedio';
     if (metric === 'goals') return 'Goles por partido';
     if (metric === 'cards') return 'Impacto por tarjetas';
-    return 'Indice combinado (experimental)';
+    return 'Indice combinado ELO de efectividad';
   };
 
   const playersWithStats = useMemo(
@@ -218,24 +238,40 @@ export default function PlayersPage() {
     const playerAMatches = getFilteredMatchPlayers(playerA.matchPlayers || []);
     const playerBMatches = getFilteredMatchPlayers(playerB.matchPlayers || []);
 
-    const playerBByMatchId = new Map(playerBMatches.map((mp: any) => [mp.matchId, mp]));
+    const playerBByMatchId = new Map(
+      playerBMatches
+        .map((mp: any) => ({ matchId: getMatchId(mp), mp }))
+        .filter((entry: any) => entry.matchId)
+        .map((entry: any) => [entry.matchId, entry.mp])
+    );
 
-    const sharedPoints = playerAMatches
-      .filter((playerAMatch: any) => playerBByMatchId.has(playerAMatch.matchId))
-      .map((playerAMatch: any) => {
-        const playerBMatch = playerBByMatchId.get(playerAMatch.matchId);
+    const sharedMatches = playerAMatches
+      .map((playerAMatch: any) => ({
+        matchId: getMatchId(playerAMatch),
+        playerAMatch,
+      }))
+      .filter((entry: any) => entry.matchId && playerBByMatchId.has(entry.matchId))
+      .map((entry: any) => {
+        const playerBMatch = playerBByMatchId.get(entry.matchId);
+        const playerAMatch = entry.playerAMatch;
         const date = playerAMatch.match?.date || playerBMatch?.match?.date;
-        const opponent = playerAMatch.match?.opponent || playerBMatch?.match?.opponent || 'Sin rival';
+        const opponent = playerAMatch.match?.opponent || playerBMatch?.match?.opponent || 'Rival no informado';
         const competitionName =
           playerAMatch.match?.competition?.name || playerBMatch?.match?.competition?.name || 'Competencia';
+        const goalsFor = playerAMatch.match?.goalsFor ?? playerBMatch?.match?.goalsFor;
+        const goalsAgainst = playerAMatch.match?.goalsAgainst ?? playerBMatch?.match?.goalsAgainst;
+        const score =
+          goalsFor !== undefined && goalsAgainst !== undefined
+            ? ` ${goalsFor}-${goalsAgainst}`
+            : '';
 
         return {
-          matchId: playerAMatch.matchId,
-          label: `${formatShortDate(date)} vs ${opponent} (${competitionName})`,
+          matchId: entry.matchId,
+          label: `${formatShortDate(date)} vs ${opponent}${score} (${competitionName})`,
           shortLabel: `${formatShortDate(date)} ${opponent}`,
           date,
-          playerAValue: getMetricValue(playerAMatch, comparisonRequest.metric),
-          playerBValue: getMetricValue(playerBMatch, comparisonRequest.metric),
+          playerAMatch,
+          playerBMatch,
         };
       })
       .sort((a: any, b: any) => {
@@ -243,6 +279,45 @@ export default function PlayersPage() {
         const bDate = b.date ? new Date(b.date).getTime() : 0;
         return aDate - bDate;
       });
+
+    const sharedPoints =
+      comparisonRequest.metric === 'combined'
+        ? (() => {
+            let eloA = ELO_BASE;
+            let eloB = ELO_BASE;
+
+            return sharedMatches.map((match: any) => {
+              const perfA = getEffectivenessScore(match.playerAMatch);
+              const perfB = getEffectivenessScore(match.playerBMatch);
+
+              const expectedA = 1 / (1 + Math.pow(10, (eloB - eloA) / 400));
+              const expectedB = 1 - expectedA;
+
+              const perfTotal = perfA + perfB;
+              const actualA = perfTotal > 0 ? perfA / perfTotal : 0.5;
+              const actualB = perfTotal > 0 ? perfB / perfTotal : 0.5;
+
+              eloA += ELO_K * (actualA - expectedA);
+              eloB += ELO_K * (actualB - expectedB);
+
+              return {
+                matchId: match.matchId,
+                label: match.label,
+                shortLabel: match.shortLabel,
+                date: match.date,
+                playerAValue: Number(eloA.toFixed(2)),
+                playerBValue: Number(eloB.toFixed(2)),
+              };
+            });
+          })()
+        : sharedMatches.map((match: any) => ({
+            matchId: match.matchId,
+            label: match.label,
+            shortLabel: match.shortLabel,
+            date: match.date,
+            playerAValue: getMetricValue(match.playerAMatch, comparisonRequest.metric),
+            playerBValue: getMetricValue(match.playerBMatch, comparisonRequest.metric),
+          }));
 
     const playerAValues = sharedPoints
       .map((point: any) => point.playerAValue)
@@ -287,6 +362,14 @@ export default function PlayersPage() {
       playerBId: selectedPlayerBId,
       metric: comparisonMetric,
     });
+  };
+
+  const handleClearComparison = () => {
+    setSelectedPlayerAId('');
+    setSelectedPlayerBId('');
+    setComparisonMetric('rating');
+    setComparisonError(null);
+    setComparisonRequest(null);
   };
 
   return (
@@ -409,43 +492,25 @@ export default function PlayersPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="playerASelect">
-                Jugador A
-              </label>
-              <select
-                id="playerASelect"
-                value={selectedPlayerAId}
-                onChange={(e) => setSelectedPlayerAId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-600 focus:border-transparent"
-              >
-                <option value="">Selecciona jugador A</option>
-                {playerSelectOptions.map((player) => (
-                  <option key={player.id} value={player.id}>
-                    {player.name} (#{player.number})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <PlayerSearchSelect
+              id="playerASelect"
+              label="Jugador A"
+              placeholder="Escribe para buscar"
+              options={playerSelectOptions}
+              selectedId={selectedPlayerAId}
+              onSelect={setSelectedPlayerAId}
+              excludeId={selectedPlayerBId}
+            />
 
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="playerBSelect">
-                Jugador B
-              </label>
-              <select
-                id="playerBSelect"
-                value={selectedPlayerBId}
-                onChange={(e) => setSelectedPlayerBId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-600 focus:border-transparent"
-              >
-                <option value="">Selecciona jugador B</option>
-                {playerSelectOptions.map((player) => (
-                  <option key={player.id} value={player.id}>
-                    {player.name} (#{player.number})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <PlayerSearchSelect
+              id="playerBSelect"
+              label="Jugador B"
+              placeholder="Escribe para buscar"
+              options={playerSelectOptions}
+              selectedId={selectedPlayerBId}
+              onSelect={setSelectedPlayerBId}
+              excludeId={selectedPlayerAId}
+            />
 
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="comparisonMetricSelect">
@@ -460,11 +525,11 @@ export default function PlayersPage() {
                 <option value="rating">Rating promedio</option>
                 <option value="goals">Goles por partido</option>
                 <option value="cards">Impacto por tarjetas</option>
-                <option value="combined">Indice combinado (experimental)</option>
+                <option value="combined">Indice combinado ELO</option>
               </select>
             </div>
 
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
               <button
                 type="button"
                 onClick={handleComparePlayers}
@@ -472,8 +537,19 @@ export default function PlayersPage() {
               >
                 Comparar
               </button>
+              <button
+                type="button"
+                onClick={handleClearComparison}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 font-semibold text-sm transition"
+              >
+                Limpiar
+              </button>
             </div>
           </div>
+
+          <p className="text-xs text-gray-500">
+            En Indice combinado ELO se pondera rating, goles y disciplina (menos tarjetas mejora el puntaje).
+          </p>
 
           {comparisonError && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{comparisonError}</div>

@@ -19,6 +19,7 @@ router.get('/', async (req, res) => {
         matchPlayers: {
           select: {
             id: true,
+            matchId: true,
             goals: true,
             cards: true,
             position: true,
@@ -27,7 +28,11 @@ router.get('/', async (req, res) => {
             match: {
               select: {
                 id: true,
+                opponent: true,
                 date: true,
+                goalsFor: true,
+                goalsAgainst: true,
+                result: true,
                 competition: {
                   select: {
                     id: true,
