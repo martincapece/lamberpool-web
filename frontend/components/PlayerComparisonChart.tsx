@@ -25,6 +25,11 @@ interface PlayerComparisonChartProps {
 const DEFAULT_PLAYER_A_COLOR = '#0ea5e9';
 const DEFAULT_PLAYER_B_COLOR = '#ef4444';
 
+type ActivePoint = {
+  index: number;
+  series: 'A' | 'B';
+};
+
 function roundValue(value: number, fixed = 2): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(fixed);
 }
@@ -80,18 +85,18 @@ export default function PlayerComparisonChart({
   playerAColor = DEFAULT_PLAYER_A_COLOR,
   playerBColor = DEFAULT_PLAYER_B_COLOR,
 }: PlayerComparisonChartProps) {
-  const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
+  const [activePoint, setActivePoint] = useState<ActivePoint | null>(null);
 
   if (points.length === 0) {
     return null;
   }
 
   const width = Math.max(900, points.length * 110);
-  const height = 420;
+  const height = 400;
   const paddingLeft = 60;
   const paddingRight = 24;
   const paddingTop = 20;
-  const paddingBottom = 130;
+  const paddingBottom = 95;
 
   const values = points
     .flatMap((point) => [point.playerAValue, point.playerBValue])
@@ -154,8 +159,9 @@ export default function PlayerComparisonChart({
   };
 
   const metricPrefix = getMetricPrefix(metricKey);
-  const activePoint = activePointIndex !== null ? points[activePointIndex] : null;
-  const activeX = activePointIndex !== null ? getX(activePointIndex) : null;
+  const activePointData = activePoint ? points[activePoint.index] : null;
+  const activeX = activePoint ? getX(activePoint.index) : null;
+  const activeSeries = activePoint?.series ?? null;
 
   const formatTick = (value: number) => {
     if (metricKey === 'goals' || metricKey === 'cards') {
@@ -190,7 +196,7 @@ export default function PlayerComparisonChart({
             return (
               <g key={`tick-${index}`}>
                 <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#e5e7eb" strokeWidth="1" />
-                <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#6b7280">
+                <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="12" fontWeight="700" fill="#374151">
                   {formatTick(tickValue)}
                 </text>
               </g>
@@ -211,6 +217,7 @@ export default function PlayerComparisonChart({
 
           {points.map((point, index) => {
             const x = getX(index);
+            const axisY = paddingTop + chartInnerHeight;
             return (
               <g key={point.matchId}>
                 {point.playerAValue !== null && (
@@ -218,11 +225,12 @@ export default function PlayerComparisonChart({
                     <circle
                       cx={x}
                       cy={getY(point.playerAValue)}
-                      r="6"
+                      r="10"
                       fill="transparent"
-                      onMouseEnter={() => setActivePointIndex(index)}
-                      onMouseLeave={() => setActivePointIndex((current) => (current === index ? null : current))}
-                      onTouchStart={() => setActivePointIndex(index)}
+                      style={{ cursor: 'pointer' }}
+                      onMouseEnter={() => setActivePoint({ index, series: 'A' })}
+                      onMouseLeave={() => setActivePoint((current) => (current?.index === index ? null : current))}
+                      onTouchStart={() => setActivePoint({ index, series: 'A' })}
                     />
                     <circle cx={x} cy={getY(point.playerAValue)} r="4" fill={playerAColor} />
                   </g>
@@ -232,21 +240,23 @@ export default function PlayerComparisonChart({
                     <circle
                       cx={x}
                       cy={getY(point.playerBValue)}
-                      r="6"
+                      r="10"
                       fill="transparent"
-                      onMouseEnter={() => setActivePointIndex(index)}
-                      onMouseLeave={() => setActivePointIndex((current) => (current === index ? null : current))}
-                      onTouchStart={() => setActivePointIndex(index)}
+                      style={{ cursor: 'pointer' }}
+                      onMouseEnter={() => setActivePoint({ index, series: 'B' })}
+                      onMouseLeave={() => setActivePoint((current) => (current?.index === index ? null : current))}
+                      onTouchStart={() => setActivePoint({ index, series: 'B' })}
                     />
                     <circle cx={x} cy={getY(point.playerBValue)} r="4" fill={playerBColor} />
                   </g>
                 )}
                 <text
                   x={x}
-                  y={height - 18}
+                  y={axisY + 24}
                   textAnchor="end"
-                  transform={`rotate(-45 ${x} ${height - 18})`}
-                  fontSize="9"
+                  transform={`rotate(-35 ${x} ${axisY + 24})`}
+                  fontSize="11"
+                  fontWeight="700"
                   fill="#4b5563"
                 >
                   {point.shortLabel}
@@ -256,7 +266,7 @@ export default function PlayerComparisonChart({
           })}
         </svg>
 
-        {activePoint && activeX !== null && (
+        {activePointData && activeX !== null && (
           <div
             className="pointer-events-none absolute z-20 min-w-56 rounded-md border border-gray-200 bg-white/95 p-3 text-xs text-gray-700 shadow-lg"
             style={{
@@ -265,18 +275,40 @@ export default function PlayerComparisonChart({
             }}
           >
             <p className="font-semibold text-gray-900">
-              {activePoint.dateLabel} - {activePoint.opponent}
+              {activePointData.dateLabel} - {activePointData.opponent}
             </p>
-            <p className="text-gray-500">{activePoint.competitionName}</p>
+            <p className="text-gray-500">{activePointData.competitionName}</p>
             <div className="mt-2 space-y-1">
-              <p style={{ color: playerAColor }}>
-                {metricPrefix} [{playerALabel}]:{' '}
-                {activePoint.playerAValue !== null ? roundValue(activePoint.playerAValue, metricKey === 'rating' ? 2 : 0) : '-'}
-              </p>
-              <p style={{ color: playerBColor }}>
-                {metricPrefix} [{playerBLabel}]:{' '}
-                {activePoint.playerBValue !== null ? roundValue(activePoint.playerBValue, metricKey === 'rating' ? 2 : 0) : '-'}
-              </p>
+              {(() => {
+                const samePointValues =
+                  activePointData.playerAValue !== null &&
+                  activePointData.playerBValue !== null &&
+                  Math.abs(activePointData.playerAValue - activePointData.playerBValue) < 0.0001;
+                const showBoth = samePointValues;
+                const showA = showBoth || activeSeries === 'A';
+                const showB = showBoth || activeSeries === 'B';
+
+                return (
+                  <>
+                    {showA && (
+                      <p style={{ color: playerAColor }}>
+                        {metricPrefix} [{playerALabel}]:{' '}
+                        {activePointData.playerAValue !== null
+                          ? roundValue(activePointData.playerAValue, metricKey === 'rating' ? 2 : 0)
+                          : '-'}
+                      </p>
+                    )}
+                    {showB && (
+                      <p style={{ color: playerBColor }}>
+                        {metricPrefix} [{playerBLabel}]:{' '}
+                        {activePointData.playerBValue !== null
+                          ? roundValue(activePointData.playerBValue, metricKey === 'rating' ? 2 : 0)
+                          : '-'}
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}

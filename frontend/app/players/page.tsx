@@ -243,7 +243,7 @@ export default function PlayersPage() {
     }
 
     if (metric === 'cards') {
-      return -cardPenalty;
+      return cardPenalty;
     }
 
     return avgRating;
@@ -264,7 +264,7 @@ export default function PlayersPage() {
   const getMetricLabel = (metric: ComparisonMetric) => {
     if (metric === 'rating') return 'Rating Promedio';
     if (metric === 'goals') return 'Goles por partido';
-    if (metric === 'cards') return 'Impacto por tarjetas';
+    if (metric === 'cards') return 'Tarjetas por partido';
     return 'Indice combinado ELO de efectividad';
   };
 
@@ -604,7 +604,7 @@ export default function PlayersPage() {
               >
                 <option value="rating">Rating promedio</option>
                 <option value="goals">Goles por partido</option>
-                <option value="cards">Impacto por tarjetas</option>
+                <option value="cards">Tarjetas por partido</option>
                 <option value="combined">Indice combinado ELO</option>
               </select>
             </div>
