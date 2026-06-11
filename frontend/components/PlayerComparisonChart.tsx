@@ -1,6 +1,12 @@
-interface ComparisonPoint {
+'use client';
+
+import { useState } from 'react';
+
+export interface ComparisonPoint {
   matchId: string;
-  label: string;
+  dateLabel: string;
+  opponent: string;
+  competitionName: string;
   shortLabel: string;
   playerAValue: number | null;
   playerBValue: number | null;
@@ -11,6 +17,7 @@ interface PlayerComparisonChartProps {
   playerALabel: string;
   playerBLabel: string;
   metricLabel: string;
+  metricKey: 'rating' | 'goals' | 'cards' | 'combined';
   playerAColor?: string;
   playerBColor?: string;
 }
@@ -18,8 +25,50 @@ interface PlayerComparisonChartProps {
 const DEFAULT_PLAYER_A_COLOR = '#0ea5e9';
 const DEFAULT_PLAYER_B_COLOR = '#ef4444';
 
-function roundValue(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+function roundValue(value: number, fixed = 2): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(fixed);
+}
+
+function getMetricPrefix(metricKey: PlayerComparisonChartProps['metricKey']): string {
+  if (metricKey === 'goals') {
+    return 'Goles';
+  }
+
+  if (metricKey === 'cards') {
+    return 'Tarjetas';
+  }
+
+  if (metricKey === 'combined') {
+    return 'Indice ELO';
+  }
+
+  return 'Rating';
+}
+
+function computeTickValues(
+  metricKey: PlayerComparisonChartProps['metricKey'],
+  minValue: number,
+  maxValue: number
+): number[] {
+  if (metricKey === 'goals' || metricKey === 'cards') {
+    const minInteger = Math.floor(minValue);
+    const maxInteger = Math.ceil(maxValue);
+
+    if (minInteger === maxInteger) {
+      return [minInteger - 1, minInteger, minInteger + 1];
+    }
+
+    const values: number[] = [];
+    for (let value = minInteger; value <= maxInteger; value++) {
+      values.push(value);
+    }
+
+    return values;
+  }
+
+  const totalTicks = 6;
+  const range = maxValue - minValue || 1;
+  return Array.from({ length: totalTicks }, (_, index) => maxValue - (index / (totalTicks - 1)) * range);
 }
 
 export default function PlayerComparisonChart({
@@ -27,19 +76,22 @@ export default function PlayerComparisonChart({
   playerALabel,
   playerBLabel,
   metricLabel,
+  metricKey,
   playerAColor = DEFAULT_PLAYER_A_COLOR,
   playerBColor = DEFAULT_PLAYER_B_COLOR,
 }: PlayerComparisonChartProps) {
+  const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
+
   if (points.length === 0) {
     return null;
   }
 
-  const width = Math.max(760, points.length * 100);
-  const height = 320;
-  const paddingLeft = 56;
-  const paddingRight = 18;
-  const paddingTop = 18;
-  const paddingBottom = 70;
+  const width = Math.max(900, points.length * 110);
+  const height = 420;
+  const paddingLeft = 60;
+  const paddingRight = 24;
+  const paddingTop = 20;
+  const paddingBottom = 130;
 
   const values = points
     .flatMap((point) => [point.playerAValue, point.playerBValue])
@@ -55,7 +107,11 @@ export default function PlayerComparisonChart({
 
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
-  const valueRange = maxValue - minValue || 1;
+  const tickValues = computeTickValues(metricKey, minValue, maxValue);
+  const yMin = Math.min(...tickValues);
+  const yMax = Math.max(...tickValues);
+  const yRange = yMax - yMin || 1;
+
   const chartInnerWidth = width - paddingLeft - paddingRight;
   const chartInnerHeight = height - paddingTop - paddingBottom;
 
@@ -68,7 +124,7 @@ export default function PlayerComparisonChart({
   };
 
   const getY = (value: number) => {
-    const normalized = (value - minValue) / valueRange;
+    const normalized = (value - yMin) / yRange;
     return paddingTop + chartInnerHeight - normalized * chartInnerHeight;
   };
 
@@ -97,11 +153,21 @@ export default function PlayerComparisonChart({
     return path;
   };
 
-  const yTicks = 5;
-  const tickValues = Array.from({ length: yTicks }, (_, tickIndex) => {
-    const ratio = tickIndex / (yTicks - 1);
-    return maxValue - ratio * valueRange;
-  });
+  const metricPrefix = getMetricPrefix(metricKey);
+  const activePoint = activePointIndex !== null ? points[activePointIndex] : null;
+  const activeX = activePointIndex !== null ? getX(activePointIndex) : null;
+
+  const formatTick = (value: number) => {
+    if (metricKey === 'goals' || metricKey === 'cards') {
+      return String(Math.round(value));
+    }
+
+    if (metricKey === 'rating') {
+      return roundValue(value, 1);
+    }
+
+    return roundValue(value, 0);
+  };
 
   return (
     <div className="space-y-3">
@@ -117,7 +183,7 @@ export default function PlayerComparisonChart({
         <span className="text-xs text-gray-500">Metrica: {metricLabel}</span>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      <div className="relative overflow-x-auto rounded-lg border border-gray-200 bg-white">
         <svg width={width} height={height} role="img" aria-label={`Comparativa ${metricLabel}`}>
           {tickValues.map((tickValue, index) => {
             const y = getY(tickValue);
@@ -125,7 +191,7 @@ export default function PlayerComparisonChart({
               <g key={`tick-${index}`}>
                 <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#e5e7eb" strokeWidth="1" />
                 <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#6b7280">
-                  {roundValue(tickValue)}
+                  {formatTick(tickValue)}
                 </text>
               </g>
             );
@@ -148,21 +214,39 @@ export default function PlayerComparisonChart({
             return (
               <g key={point.matchId}>
                 {point.playerAValue !== null && (
-                  <circle cx={x} cy={getY(point.playerAValue)} r="4" fill={playerAColor}>
-                    <title>{`${playerALabel}: ${roundValue(point.playerAValue)} | ${point.label}`}</title>
-                  </circle>
+                  <g>
+                    <circle
+                      cx={x}
+                      cy={getY(point.playerAValue)}
+                      r="6"
+                      fill="transparent"
+                      onMouseEnter={() => setActivePointIndex(index)}
+                      onMouseLeave={() => setActivePointIndex((current) => (current === index ? null : current))}
+                      onTouchStart={() => setActivePointIndex(index)}
+                    />
+                    <circle cx={x} cy={getY(point.playerAValue)} r="4" fill={playerAColor} />
+                  </g>
                 )}
                 {point.playerBValue !== null && (
-                  <circle cx={x} cy={getY(point.playerBValue)} r="4" fill={playerBColor}>
-                    <title>{`${playerBLabel}: ${roundValue(point.playerBValue)} | ${point.label}`}</title>
-                  </circle>
+                  <g>
+                    <circle
+                      cx={x}
+                      cy={getY(point.playerBValue)}
+                      r="6"
+                      fill="transparent"
+                      onMouseEnter={() => setActivePointIndex(index)}
+                      onMouseLeave={() => setActivePointIndex((current) => (current === index ? null : current))}
+                      onTouchStart={() => setActivePointIndex(index)}
+                    />
+                    <circle cx={x} cy={getY(point.playerBValue)} r="4" fill={playerBColor} />
+                  </g>
                 )}
                 <text
                   x={x}
-                  y={height - 16}
+                  y={height - 18}
                   textAnchor="end"
-                  transform={`rotate(-35 ${x} ${height - 16})`}
-                  fontSize="10"
+                  transform={`rotate(-45 ${x} ${height - 18})`}
+                  fontSize="9"
                   fill="#4b5563"
                 >
                   {point.shortLabel}
@@ -171,7 +255,36 @@ export default function PlayerComparisonChart({
             );
           })}
         </svg>
+
+        {activePoint && activeX !== null && (
+          <div
+            className="pointer-events-none absolute z-20 min-w-56 rounded-md border border-gray-200 bg-white/95 p-3 text-xs text-gray-700 shadow-lg"
+            style={{
+              left: Math.max(8, Math.min(activeX - 110, width - 260)),
+              top: 10,
+            }}
+          >
+            <p className="font-semibold text-gray-900">
+              {activePoint.dateLabel} - {activePoint.opponent}
+            </p>
+            <p className="text-gray-500">{activePoint.competitionName}</p>
+            <div className="mt-2 space-y-1">
+              <p style={{ color: playerAColor }}>
+                {metricPrefix} [{playerALabel}]:{' '}
+                {activePoint.playerAValue !== null ? roundValue(activePoint.playerAValue, metricKey === 'rating' ? 2 : 0) : '-'}
+              </p>
+              <p style={{ color: playerBColor }}>
+                {metricPrefix} [{playerBLabel}]:{' '}
+                {activePoint.playerBValue !== null ? roundValue(activePoint.playerBValue, metricKey === 'rating' ? 2 : 0) : '-'}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
+
+      <p className="text-[11px] text-gray-500 md:hidden">
+        Desliza horizontalmente para ver todos los partidos y toca un punto para ver detalle.
+      </p>
     </div>
   );
 }

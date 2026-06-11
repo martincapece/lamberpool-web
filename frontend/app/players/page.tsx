@@ -22,6 +22,17 @@ interface ComparisonRequest {
   metric: ComparisonMetric;
 }
 
+interface ComparisonPoint {
+  matchId: string;
+  dateLabel: string;
+  opponent: string;
+  competitionName: string;
+  shortLabel: string;
+  date?: string;
+  playerAValue: number | null;
+  playerBValue: number | null;
+}
+
 const ELO_BASE = 1000;
 const ELO_K = 24;
 
@@ -126,6 +137,32 @@ export default function PlayersPage() {
       day: '2-digit',
       month: '2-digit',
     });
+  };
+
+  const formatDateWithYear = (dateValue?: string) => {
+    if (!dateValue) {
+      return '--/--/--';
+    }
+
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) {
+      return '--/--/--';
+    }
+
+    return date.toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+    });
+  };
+
+  const normalizeOpponent = (opponent?: string | null) => {
+    if (!opponent) {
+      return null;
+    }
+
+    const normalized = String(opponent).trim();
+    return normalized.length > 0 ? normalized : null;
   };
 
   const getCardPenalty = (cards?: string) => {
@@ -280,7 +317,7 @@ export default function PlayersPage() {
         return aDate - bDate;
       });
 
-    const sharedPoints =
+    const sharedPoints: ComparisonPoint[] =
       comparisonRequest.metric === 'combined'
         ? (() => {
             let eloA = ELO_BASE;
@@ -302,7 +339,9 @@ export default function PlayersPage() {
 
               return {
                 matchId: match.matchId,
-                label: match.label,
+                dateLabel: formatDateWithYear(match.date),
+                opponent: normalizeOpponent(match.playerAMatch?.match?.opponent) || normalizeOpponent(match.playerBMatch?.match?.opponent) || 'Rival no informado',
+                competitionName: match.playerAMatch?.match?.competition?.name || match.playerBMatch?.match?.competition?.name || 'Competencia',
                 shortLabel: match.shortLabel,
                 date: match.date,
                 playerAValue: Number(eloA.toFixed(2)),
@@ -312,7 +351,9 @@ export default function PlayersPage() {
           })()
         : sharedMatches.map((match: any) => ({
             matchId: match.matchId,
-            label: match.label,
+            dateLabel: formatDateWithYear(match.date),
+            opponent: normalizeOpponent(match.playerAMatch?.match?.opponent) || normalizeOpponent(match.playerBMatch?.match?.opponent) || 'Rival no informado',
+            competitionName: match.playerAMatch?.match?.competition?.name || match.playerBMatch?.match?.competition?.name || 'Competencia',
             shortLabel: match.shortLabel,
             date: match.date,
             playerAValue: getMetricValue(match.playerAMatch, comparisonRequest.metric),
@@ -338,6 +379,7 @@ export default function PlayersPage() {
     return {
       playerA,
       playerB,
+      metricKey: comparisonRequest.metric,
       metricLabel: getMetricLabel(comparisonRequest.metric),
       points: sharedPoints,
       playerAAverage,
@@ -568,6 +610,7 @@ export default function PlayersPage() {
                 playerALabel={comparisonResult.playerA.name}
                 playerBLabel={comparisonResult.playerB.name}
                 metricLabel={comparisonResult.metricLabel}
+                metricKey={comparisonResult.metricKey}
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
