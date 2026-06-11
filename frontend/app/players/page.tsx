@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { playersAPI } from '@/lib/api';
+import { matchesAPI, playersAPI } from '@/lib/api';
 import PlayerStats from '@/components/PlayerStats';
 import PlayerStatsFilters, { FilterOptions } from '@/components/PlayerStatsFilters';
 import PlayerComparisonChart from '@/components/PlayerComparisonChart';
@@ -33,6 +33,12 @@ interface ComparisonPoint {
   playerBValue: number | null;
 }
 
+interface MatchLookupEntry {
+  opponent: string;
+  date?: string;
+  competitionName?: string;
+}
+
 const ELO_BASE = 1000;
 const ELO_K = 24;
 
@@ -47,6 +53,7 @@ export default function PlayersPage() {
   const [comparisonMetric, setComparisonMetric] = useState<ComparisonMetric>('rating');
   const [comparisonError, setComparisonError] = useState<string | null>(null);
   const [comparisonRequest, setComparisonRequest] = useState<ComparisonRequest | null>(null);
+  const [matchesLookup, setMatchesLookup] = useState<Record<string, MatchLookupEntry>>({});
 
   useEffect(() => {
     fetchPlayers();
@@ -55,8 +62,30 @@ export default function PlayersPage() {
   const fetchPlayers = async () => {
     try {
       setLoading(true);
-      const response = await playersAPI.getAll();
-      const playersData = response.data;
+      const [playersResponse, matchesResponse] = await Promise.all([
+        playersAPI.getAll(),
+        matchesAPI.getAll(),
+      ]);
+      const playersData = playersResponse.data;
+      const matchesData = Array.isArray(matchesResponse.data) ? matchesResponse.data : [];
+
+      const lookup = matchesData.reduce((acc: Record<string, MatchLookupEntry>, match: any) => {
+        if (!match?.id) {
+          return acc;
+        }
+
+        const opponent = typeof match.opponent === 'string' ? match.opponent.trim() : '';
+        if (!opponent) {
+          return acc;
+        }
+
+        acc[match.id] = {
+          opponent,
+          date: match.date,
+          competitionName: match.competition?.name,
+        };
+        return acc;
+      }, {});
 
       const enrichedPlayers = await Promise.all(
         playersData.map(async (player: any) => {
@@ -66,6 +95,7 @@ export default function PlayersPage() {
       );
 
       setPlayers(enrichedPlayers);
+      setMatchesLookup(lookup);
       setError(null);
     } catch (err) {
       setError('Error al cargar los jugadores');
@@ -292,9 +322,17 @@ export default function PlayersPage() {
         const playerBMatch = playerBByMatchId.get(entry.matchId);
         const playerAMatch = entry.playerAMatch;
         const date = playerAMatch.match?.date || playerBMatch?.match?.date;
-        const opponent = playerAMatch.match?.opponent || playerBMatch?.match?.opponent || 'Rival no informado';
+        const fallbackMatch = matchesLookup[entry.matchId];
+        const opponent =
+          normalizeOpponent(playerAMatch.match?.opponent) ||
+          normalizeOpponent(playerBMatch?.match?.opponent) ||
+          normalizeOpponent(fallbackMatch?.opponent) ||
+          'Rival no informado';
         const competitionName =
-          playerAMatch.match?.competition?.name || playerBMatch?.match?.competition?.name || 'Competencia';
+          playerAMatch.match?.competition?.name ||
+          playerBMatch?.match?.competition?.name ||
+          fallbackMatch?.competitionName ||
+          'Competencia';
         const goalsFor = playerAMatch.match?.goalsFor ?? playerBMatch?.match?.goalsFor;
         const goalsAgainst = playerAMatch.match?.goalsAgainst ?? playerBMatch?.match?.goalsAgainst;
         const score =
@@ -385,7 +423,7 @@ export default function PlayersPage() {
       playerAAverage,
       playerBAverage,
     };
-  }, [comparisonRequest, players, activeFilter]);
+  }, [comparisonRequest, players, activeFilter, matchesLookup]);
 
   const handleComparePlayers = () => {
     if (!selectedPlayerAId || !selectedPlayerBId) {
