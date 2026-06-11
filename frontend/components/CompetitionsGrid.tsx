@@ -29,7 +29,7 @@ export default function CompetitionsGrid() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
-  const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; name: string } | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<{ urls: string[]; index: number; name: string } | null>(null);
   const [zoomLevel, setZoomLevel] = useState(100);
   const router = useRouter();
 
@@ -183,8 +183,15 @@ export default function CompetitionsGrid() {
           >
             {/* Header con controles */}
             <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-              <h3 className="text-lg font-bold text-gray-900">{selectedPhoto.name}</h3>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <h3 className="text-lg font-bold text-gray-900 truncate">{selectedPhoto.name}</h3>
+                {selectedPhoto.urls.length > 1 && (
+                  <span className="shrink-0 text-sm text-gray-500 font-medium">
+                    {selectedPhoto.index + 1} / {selectedPhoto.urls.length}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
                 <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-lg p-1">
                   <button
                     onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))}
@@ -205,9 +212,7 @@ export default function CompetitionsGrid() {
                   </button>
                 </div>
                 <button
-                  onClick={() => {
-                    setZoomLevel(100);
-                  }}
+                  onClick={() => setZoomLevel(100)}
                   className="px-2 py-1 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded"
                   title="Resetear zoom"
                 >
@@ -222,12 +227,29 @@ export default function CompetitionsGrid() {
               </div>
             </div>
 
-            {/* Contenedor de imagen con scroll */}
-            <div className="flex-1 overflow-auto flex items-center justify-center bg-gray-100">
+            {/* Contenedor de imagen con navegación */}
+            <div className="relative flex-1 overflow-auto flex items-center justify-center bg-gray-100">
+              {/* Flecha anterior */}
+              {selectedPhoto.urls.length > 1 && (
+                <button
+                  onClick={() =>
+                    setSelectedPhoto((prev) =>
+                      prev
+                        ? { ...prev, index: (prev.index - 1 + prev.urls.length) % prev.urls.length }
+                        : prev
+                    )
+                  }
+                  className="absolute left-2 z-10 rounded-full bg-white/80 p-2 text-gray-800 shadow hover:bg-white transition"
+                  title="Foto anterior"
+                >
+                  ‹
+                </button>
+              )}
+
               <div className="p-4">
                 <img
-                  src={selectedPhoto.url}
-                  alt={selectedPhoto.name}
+                  src={selectedPhoto.urls[selectedPhoto.index]}
+                  alt={`${selectedPhoto.name} - foto ${selectedPhoto.index + 1}`}
                   className="rounded transition-transform duration-200"
                   style={{
                     transform: `scale(${zoomLevel / 100})`,
@@ -236,7 +258,43 @@ export default function CompetitionsGrid() {
                   }}
                 />
               </div>
+
+              {/* Flecha siguiente */}
+              {selectedPhoto.urls.length > 1 && (
+                <button
+                  onClick={() =>
+                    setSelectedPhoto((prev) =>
+                      prev
+                        ? { ...prev, index: (prev.index + 1) % prev.urls.length }
+                        : prev
+                    )
+                  }
+                  className="absolute right-2 z-10 rounded-full bg-white/80 p-2 text-gray-800 shadow hover:bg-white transition"
+                  title="Foto siguiente"
+                >
+                  ›
+                </button>
+              )}
             </div>
+
+            {/* Miniaturas cuando hay más de una foto */}
+            {selectedPhoto.urls.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto border-t border-gray-200 bg-gray-50 p-3">
+                {selectedPhoto.urls.map((url, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedPhoto((prev) => prev ? { ...prev, index: i } : prev)}
+                    className={`shrink-0 rounded border-2 transition ${
+                      i === selectedPhoto.index
+                        ? 'border-green-500 opacity-100'
+                        : 'border-transparent opacity-60 hover:opacity-90'
+                    }`}
+                  >
+                    <img src={url} alt={`miniatura ${i + 1}`} className="h-14 w-14 rounded object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -244,10 +302,13 @@ export default function CompetitionsGrid() {
       <div className="flex flex-wrap gap-6 justify-center md:justify-start">
         {allCompetitions.map((competition) => (
           (() => {
-            const primaryPhotoUrl =
+            const allPhotoUrls =
               competition.finalPhotos && competition.finalPhotos.length > 0
-                ? competition.finalPhotos[0].url
-                : competition.finalTablePhotoUrl;
+                ? competition.finalPhotos.map((p: { url: string }) => p.url)
+                : competition.finalTablePhotoUrl
+                  ? [competition.finalTablePhotoUrl]
+                  : [];
+            const primaryPhotoUrl = allPhotoUrls[0] ?? null;
 
             return (
           <button
@@ -281,19 +342,22 @@ export default function CompetitionsGrid() {
                 <p className="text-sm text-gray-200 font-medium">
                   {competition.name} • {competition.season.year}
                 </p>
-                {primaryPhotoUrl && (
+                {allPhotoUrls.length > 0 && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setZoomLevel(100); // Reset zoom
+                      setZoomLevel(100);
                       setSelectedPhoto({
-                        url: primaryPhotoUrl,
+                        urls: allPhotoUrls,
+                        index: 0,
                         name: `Tabla Final - ${competition.season.tournament.name}`,
                       });
                     }}
                     className="block w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold transition transform hover:scale-105"
                   >
-                    ✅ Ver Tabla Final
+                    {allPhotoUrls.length > 1
+                      ? `✅ Ver Tablas Finales (${allPhotoUrls.length})`
+                      : '✅ Ver Tabla Final'}
                   </button>
                 )}
                 <p className="text-xs text-gray-300">Click para ver partidos</p>
